@@ -1,0 +1,17 @@
+<launch>
+  <node pkg="rviz" type="rviz" name="rviz"
+    args="-d $(find ar_pose)/launch/live_multi.rviz"/>
+
+  <node pkg="tf" type="static_transform_publisher" name="world_to_cam" 
+    args="0 0 0.5 -1.57 0 -1.57 world camera 1" />
+  <node pkg="tf" type="static_transform_publisher" name="cam_to_cam_frame" 
+    args="0 0 0 0 0 0 camera camera_frame 1" />
+
+  <node name="ar_pose" pkg="ar_pose" type="ar_multi" respawn="false"
+        output="screen">
+    <param name="marker_pattern_list" type="string"
+           value="$(find ar_pose)/data/multi/object_letters"/>
+    <param name="threshold" type="int" value="50"/>
+  </node>
+</launch>
+  
