@@ -21,7 +21,7 @@ def vector_mag(v):
     return mag
 
 # Asngle assumes 2D vector, returns in radians
-# Vertical (0, 1) is an angle of 0, sweeps (+/-) going (CCW/CW)
+# Horizontal (1, 0) is an angle of 0, sweeps (+/-) going (CCW/CW)
 def vector_ang(v):
     ang = -atan2(-v.y, v.x)
     return ang
