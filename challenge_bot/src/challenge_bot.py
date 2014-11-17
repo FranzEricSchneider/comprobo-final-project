@@ -42,6 +42,24 @@ class ChallengeBot():
         cmd = Twist()
         self.vector_pub.publish(cmd)
 
+    def drive_distance(self, distance):
+        """
+        Drives a given distance straight forward or back, in meters
+        """
+        distance_cmd = Twist(linear=Vector3(copysign(0.25, distance), 0, 0))
+        self.vector_pub.publish(distance_cmd)
+        rospy.sleep(4 * abs(distance))
+        self.stop()
+
+    def drive_angle(self, angle):
+        """
+        Drives a given angle, (CCW, CW) is (+/-). In radians
+        """
+        angle_cmd = Twist(angular=Vector3(0, 0, copysign(1, angle)))
+        self.vector_pub.publish(angle_cmd)
+        rospy.sleep(abs(angle))
+        self.stop()
+
     def drive_robot(self, cmd_vector, avoid_obs=True):
         """
         Takes in a Vector3 direction in which to drive the robot, then layers
