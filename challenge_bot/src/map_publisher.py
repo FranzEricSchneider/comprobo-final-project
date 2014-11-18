@@ -26,6 +26,7 @@ class MapPublisher():
         self.map.header.frame_id = "map"
 
         # info stuff
+        # TODO: what should we do about the origin...
         self.map.info.origin.position.x = 10
         self.map.info.origin.position.y = 10
         self.map.info.width = 4
@@ -46,12 +47,6 @@ class MapPublisher():
 
         # TODO: use the correct value for the ramp position
         self.mark_ramp(1, 0)
-
-        # testing testing; 
-        # TODO: get rid of the these lines after
-        # demo-ing this map publisher to Franzee
-        self.pos_cb(1, 1)
-        self.sample_cb(1, 3)
 
     def publish_map(self):
         # handy helper function to call whenever you want to update the map
