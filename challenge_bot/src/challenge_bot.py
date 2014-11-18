@@ -30,10 +30,18 @@ class ChallengeBot():
         self.CMD_CUTOFF = 0.01
         self.AVOID_CMD_CUTOFF = 0.1
 
+        # Stores the start time as a float, not as a Time datatype
+        self.start_time = rospy.get_time()
+        # Time limit in seconds
+        self.TIME_LIMIT = 10 * 60.0
+
         self.vector_pub = rospy.Publisher('/cmd_vel', Twist, queue_size=1)
 
         # TODO: Replace this with a subscription to /obstacle_avoid topic
         self.obs_avoid_vector = Vector3(0, 0, 0)
+
+        self.unclaimed_samples = []
+        self.claimed_samples = []
 
     def stop(self):
         """
@@ -50,6 +58,12 @@ class ChallengeBot():
         self.vector_pub.publish(distance_cmd)
         rospy.sleep(4 * abs(distance))
         self.stop()
+
+    def time_left(self):
+        """
+        Returns the time left, in float seconds, until time is out
+        """
+        return (self.start_time + self.TIME_LIMIT) - rospy.get_time()
 
     def drive_angle(self, angle):
         """
