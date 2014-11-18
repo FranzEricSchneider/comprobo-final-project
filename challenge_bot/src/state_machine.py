@@ -21,119 +21,122 @@ from vector_tools import *
 challenger = ChallengeBot()
 
 
-# define state Return
 class Seek(smach.State):
     def __init__(self):
-        smach.State.__init__(self, outcomes=['preempt-avoid', 'finished'],
-                             input_keys=['follow_robot'])
+        smach.State.__init__(self, outcomes=['has-sample', 'timeout'],
+                             input_keys=['seek'])
         self.result = ''
+        # TODO: Replace this timeout with one that depends on distance
+        # Time left (s) when SEEK will give up and return
+        # self.SEEK_TIMEOUT = 2 * 60.0
+
+        # testing testing
+        # Remove this line and uncomment above line once demoed
+        self.SEEK_TIMEOUT = 9.8 * 60.0
 
     def execute(self, userdata):
         global challenger
         rospy.loginfo('Executing state SEEK')
-
-        if challenger.movement_detected:
-            self.result = 'preempt-avoid'
-            return
-
-        if challenger.last_wall_left:
-            cmd = "Left"
-        else:
-            cmd = "Right"
-        challenger.command_motors(challenger.drive_commands[cmd])
-        rospy.loginfo("Sending bot seeking to the %s", cmd)
-        rospy.sleep(1.0)
-        challenger.command_motors(challenger.drive_commands["Forward"])
-        rospy.sleep(0.5)
-        challenger.stop()
-
-        self.result = 'finished'
-        rospy.loginfo("SEEK state is returning %s\n", self.result)
-        challenger.stop()
-        return self.result
-
-
-# define state SeekAndGet
-class SeekAndGet(smach.State):
-    def __init__(self):
-        smach.State.__init__(self, outcomes=['preempt-avoid', 'preempt-follow',
-                             'finished'], input_keys=['idle_robot'])
-        self.result = ''
-
-    def execute(self, userdata):
-        global challenger
-        rospy.loginfo('Executing state SEEK_AND_GET')
-
         r = rospy.Rate(5)
+
         while not rospy.is_shutdown():
-            if challenger.movement_detected:
-                self.result = 'preempt-avoid'
+            if len(challenger.unclaimed_samples) > 0:
+                self.result = 'has-sample'
                 break
-            elif challenger.wall_detected:
-                self.result = 'preempt-follow'
+            elif challenger.time_left() < self.SEEK_TIMEOUT:
+                self.result = 'timeout'
                 break
             else:
-                pass
-                v = Vector3()
-                challenger.command_motors(v)
+                # TODO: Write SEEK logic
+                rospy.loginfo("This is where the robot should seek!")
                 r.sleep()
-
-        rospy.loginfo("SEEK_AND_GET state is returning %s\n", self.result)
+        rospy.loginfo("Returning from %s with result %s",
+                      self.__class__.__name__, self.result)
         return self.result
 
 
-# define state Return
-class Return(smach.State):
+class Grab(smach.State):
     def __init__(self):
-        smach.State.__init__(self, outcomes=['preempt-avoid', 'finished'],
-                             input_keys=['follow_robot'])
+        smach.State.__init__(self, outcomes=['no-sample', 'timeout'],
+                             input_keys=['grab'])
         self.result = ''
+        # TODO: Replace this timeout with one that depends on distance
+        # Time left (s) when GRAB will give up and return
+        self.GRAB_TIMEOUT = 1.5 * 60.0
 
     def execute(self, userdata):
         global challenger
-        rospy.loginfo('Executing state FOLLOW')
+        rospy.loginfo('Executing state GRAB')
+        r = rospy.Rate(5)
 
-        cmd_align = Vector3()
-        cmd_approach = Vector3()
-        wall = Twist()
-        r = rospy.Rate(10)
-
-        while challenger.wall_detected and not rospy.is_shutdown():
-            if challenger.movement_detected:
-                self.result = 'preempt-avoid'
+        while not rospy.is_shutdown():
+            if len(challenger.unclaimed_samples) <= 0:
+                self.result = 'no-sample'
                 break
-            wall = deepcopy(challenger.closest_wall)
-
-            cmd_align.x = cos(wall.angular.z)
-            cmd_align.y = sin(wall.angular.z)
-            error = vector_mag(wall.linear) - challenger.goal_distance
-            cmd_approach = vector_multiply(create_unit_vector(wall.linear),
-                                           error)
-            # rospy.loginfo("cmd_align: \n%s", cmd_align)
-            # rospy.loginfo("cmd_approach: \n%s", cmd_approach)
-
-            challenger.command_motors(vector_add(cmd_align, cmd_approach))
-            r.sleep()
-
-        self.result = 'finished'
-        rospy.loginfo("FOLLOW state is returning %s\n", self.result)
-        challenger.stop()
+            elif challenger.time_left() < self.GRAB_TIMEOUT:
+                self.result = 'timeout'
+                break
+            else:
+                # TODO: Write GRAB logic
+                rospy.loginfo("This is where the robot should grab samples!")
+                r.sleep()
+        rospy.loginfo("Returning from %s with result %s",
+                      self.__class__.__name__, self.result)      
         return self.result
 
 
-# define state Climb
+class Return(smach.State):
+    def __init__(self):
+        smach.State.__init__(self, outcomes=['has-sample', 'climb'],
+                             input_keys=['return'])
+        self.result = ''
+        # TODO: Link this to the GRAB timeout somehow legit
+        # Time left (s) when GRAB will give up and return
+        self.GRAB_TIMEOUT = 1.5 * 60.0
+
+    def execute(self, userdata):
+        global challenger
+        rospy.loginfo('Executing state RETURN')
+        self.result = 'climb'
+        r = rospy.Rate(5)
+
+        while not rospy.is_shutdown():
+            # TODO: Add a case to the while loop that breaks on success
+            if len(challenger.unclaimed_samples) > 0\
+               and challenger.time_left() > self.GRAB_TIMEOUT:
+                self.result = 'has-sample'
+                break
+            else:
+                # TODO: Write RETURN logic
+                rospy.loginfo("This is where the robot should return!")
+                r.sleep()
+
+        challenger.stop()
+        rospy.loginfo("Returning from %s with result %s",
+              self.__class__.__name__, self.result)
+        return self.result
+
+
 class Climb(smach.State):
     def __init__(self):
         smach.State.__init__(self, outcomes=['finished'],
-                             input_keys=['avoid_robot'])
+                             input_keys=['climb'])
         self.result = ''
 
     def execute(self, userdata):
         global challenger
         rospy.loginfo('Executing state CLIMB')
-
+        r = rospy.Rate(5)
         self.result = 'finished'
-        rospy.loginfo("CLIMB state is returning %s\n", self.result)
+
+        while not rospy.is_shutdown():
+            # TODO: Add a case to the while loop that breaks on success
+            # TODO: Write CLIMB logic
+            rospy.loginfo("This is where the robot should climb!")
+            r.sleep()
+
+        rospy.loginfo("Returning from %s with result %s",
+                      self.__class__.__name__, self.result)
         return self.result
 
 
@@ -142,22 +145,16 @@ def main():
 
     with sm:
         smach.StateMachine.add('SEEK', Seek(),
-                               transitions={'preempt-avoid': 'CLIMB',
-                                            'finished': 'SEEK_AND_GET'},
-                               remapping={'follow_robot': 'sm_robot'})
-        smach.StateMachine.add('SEEK_AND_GET', SeekAndGet(),
-                               transitions={'preempt-avoid': 'CLIMB',
-                                            'preempt-follow': 'FOLLOW',
-                                            'finished': 'sm-finished'},
-                               remapping={'idle_robot': 'sm_robot'})
-        smach.StateMachine.add('FIND', Find(),
-                               transitions={'preempt-avoid': 'CLIMB',
-                                            'finished': 'FOLLOW'},
-                               remapping={'find_robot': 'sm_robot'})
+                               transitions={'has-sample': 'GRAB',
+                                            'timeout': 'RETURN'})
+        smach.StateMachine.add('GRAB', Grab(),
+                               transitions={'no-sample': 'SEEK',
+                                            'timeout': 'RETURN'})
+        smach.StateMachine.add('RETURN', Return(),
+                               transitions={'has-sample': 'GRAB',
+                                            'climb': 'CLIMB'})
         smach.StateMachine.add('CLIMB', Climb(),
-                               transitions={'alarm': 'CLIMB',
-                                            'false-alarm': 'SEEK_AND_GET'},
-                               remapping={'wary_robot': 'sm_robot'})
+                               transitions={'finished': 'sm-finished'})
 
     outcome = sm.execute()
     rospy.spin()
