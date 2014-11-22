@@ -35,9 +35,9 @@ def create_unit_vector(v1):
         v.y = v1.y / vector_mag(v1)
     return v
 
-def increment_angle(angle, addition):
+def add_angles(angle, addition):
     """
-    Increment an angle (rad) and output an angle that is bounded from -/+ pi
+    Add angles (rad) and output an angle that is bounded from -/+ pi
     """
     added = angle + addition
     while abs(added) > pi:
