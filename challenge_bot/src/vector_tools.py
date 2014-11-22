@@ -51,9 +51,3 @@ def angle_difference(angle1, angle2):
     a = angle2 - angle1
     a = ((a + pi) % (2 * pi)) - pi
     return a
-
-
-from vector_tools import *
-a = 1.0
-b = 3.0
-angle_difference(a, b)
