@@ -20,6 +20,14 @@ class MapPublisher():
         # has also been a helpful example/reference for the map things.
         self.map = OccupancyGrid()
 
+        # set up the service for updating the map with positions the robot has been 
+        rospy.init_node('add_pos_to_map_server')
+        s = rospy.Service('add_pos_to_map', AddPosToMap, handle_pos_service)
+
+        # set up the service for updating the map with sample locations
+        rospy.init_node('add_sample_pos_to_map_server')
+        s = rospy.Service('add_sample_pos_to_map', AddSamplePosToMap, handle_sample_pos_service)
+
         # header stuff
         self.map.header.seq = 0 # increment this every time we publish the map
         self.map.header.stamp = rospy.Time.now()
@@ -48,6 +56,8 @@ class MapPublisher():
         # TODO: use the correct value for the ramp position
         self.mark_ramp(1, 0)
 
+        rospy.spin()
+
     def publish_map(self):
         # handy helper function to call whenever you want to update the map
         self.map.header.seq += 1
@@ -57,12 +67,18 @@ class MapPublisher():
         # handy helper function for determining the index of the map list given
         # x and y values. utilizes row major order
         return self.map.info.width*x + y
+
+    def handle_pos_service(self, req):
+        return self.pos_cb(req.point.x, req.point.y)
  
     def pos_cb(self, pos_x, pos_y):
         # fill in squares where you are with HAVEBEEN_OCCUPANCY_VAL
         idx = self.row_major_idx(pos_x, pos_y)
         self.map.data[idx] = self.HAVEBEEN_OCCUPANCY_VAL 
         self.publish_map()
+
+    def handle_sample_pos_service(self, req):
+        return self.sample_cb(req.point.x, req.point.y)
 
     def sample_cb(self, sample_x, sample_y):
         # fill in squares where sample is with SAMPLE_OCCUPANCY_VAL
@@ -90,3 +106,4 @@ if __name__ == '__main__':
         node.run()
     except rospy.ROSInterruptException: pass
 
+`
