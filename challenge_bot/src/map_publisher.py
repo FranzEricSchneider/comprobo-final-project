@@ -8,6 +8,7 @@
 
 import rospy
 from nav_msgs.msg import MapMetaData, OccupancyGrid
+from challenge_msgs.srv import PointRequest
 
 class MapPublisher():
     def __init__(self):
@@ -21,12 +22,10 @@ class MapPublisher():
         self.map = OccupancyGrid()
 
         # set up the service for updating the map with positions the robot has been 
-        rospy.init_node('add_pos_to_map_server')
-        s = rospy.Service('add_pos_to_map', AddPosToMap, handle_pos_service)
+        pos_s = rospy.Service('add_pos_to_map', PointRequest, self.handle_pos_service)
 
         # set up the service for updating the map with sample locations
-        rospy.init_node('add_sample_pos_to_map_server')
-        s = rospy.Service('add_sample_pos_to_map', AddSamplePosToMap, handle_sample_pos_service)
+        sample_s = rospy.Service('add_sample_pos_to_map', PointRequest, self.handle_sample_pos_service)
 
         # header stuff
         self.map.header.seq = 0 # increment this every time we publish the map
@@ -105,5 +104,3 @@ if __name__ == '__main__':
         node = MapPublisher()
         node.run()
     except rospy.ROSInterruptException: pass
-
-`
