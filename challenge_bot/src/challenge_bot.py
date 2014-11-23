@@ -118,3 +118,7 @@ class ChallengeBot():
 
     def obs_cb(self, msg):
         self.obs_avoid_vector = msg
+
+    def seek(self):
+        # TODO: Make code that checks the map, finds the direction to go,
+        # and adds a vector in that direction

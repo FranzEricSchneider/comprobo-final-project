@@ -28,11 +28,7 @@ class Seek(smach.State):
         self.result = ''
         # TODO: Replace this timeout with one that depends on distance
         # Time left (s) when SEEK will give up and return
-        # self.SEEK_TIMEOUT = 2 * 60.0
-
-        # testing testing
-        # Remove this line and uncomment above line once demoed
-        self.SEEK_TIMEOUT = 9.8 * 60.0
+        self.SEEK_TIMEOUT = 2 * 60.0
 
     def execute(self, userdata):
         global challenger
