@@ -81,18 +81,12 @@ class ChallengeBot():
            or not avoid_obs:
             if vector_mag(cmd_vector) > self.AVOID_CMD_CUTOFF:
                 self.drive(cmd_vector)
-                print "WRONG #1"
-                print "avoid_obs, vector_mag(self.obs_avoid_vector) < self.AVOID_CMD_CUTOFF"
-                print (avoid_obs, vector_mag(self.obs_avoid_vector) < self.AVOID_CMD_CUTOFF)
             else:
                 self.stop()
-                print "WRONG #2"
         else:
             if vector_mag(cmd_vector) < self.AVOID_CMD_CUTOFF:
                 self.drive(self.obs_avoid_vector)
-                print "WRONG #3"
             else:
-                print "GOT HERE!"
                 self.drive(vector_add(cmd_vector, self.obs_avoid_vector))
 
     def drive(self, vector):
