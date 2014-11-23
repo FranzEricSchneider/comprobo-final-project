@@ -16,7 +16,7 @@ import rospy
 from nav_msgs.msg import Odometry
 from geometry_msgs.msg import Point
 from tf.transformations import euler_from_quaternion
-from challenge_msgs.srv import ResetPosition, ResetPositionResponse
+from challenge_msgs.srv import PointRequest, PointRequestResponse
 from vector_tools import add_angles, angle_difference
 from point_tools import add_points, point_difference, array_to_point
 
@@ -92,7 +92,7 @@ class CurrentPosition():
         self.M[1, 0] = np.sin(self.latest_odom_to_actual.z)
 
     def current_pos_server(self):
-        service = rospy.Service('/reset_pos', ResetPosition,
+        service = rospy.Service('/reset_pos', PointRequest,
                                 self.set_current_offsets)
         rospy.loginfo("Set up the /reset_pos service")
         rospy.spin()
@@ -107,7 +107,7 @@ class CurrentPosition():
                                                            req.point)
         self.calculate_correction_matrix()
         rospy.loginfo("Reset the offsets!")
-        return ResetPositionResponse()
+        return PointRequestResponse()
 
 
 if __name__ == '__main__':

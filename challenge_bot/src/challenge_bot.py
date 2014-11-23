@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-
 # Emily Wang, Eric Schneider
 # Computational Robotics, Fall 2014, Olin College, taught by Paul Ruvolo
 # This code is the main class code for a robot that is prototyping the NASA

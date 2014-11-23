@@ -8,6 +8,7 @@
 
 import rospy
 from nav_msgs.msg import MapMetaData, OccupancyGrid
+from challenge_msgs.srv import PointRequest, PointRequestResponse
 
 class MapPublisher():
     def __init__(self):
@@ -20,18 +21,24 @@ class MapPublisher():
         # has also been a helpful example/reference for the map things.
         self.map = OccupancyGrid()
 
+        # set up the service for updating the map with positions the robot has been 
+        pos_s = rospy.Service('add_pos_to_map', PointRequest, self.handle_pos_service)
+
+        # set up the service for updating the map with sample locations
+        sample_s = rospy.Service('add_sample_pos_to_map', PointRequest, self.handle_sample_pos_service)
+
         # header stuff
         self.map.header.seq = 0 # increment this every time we publish the map
         self.map.header.stamp = rospy.Time.now()
         self.map.header.frame_id = "map"
 
         # info stuff
-        # TODO: what should we do about the origin...
-        self.map.info.origin.position.x = 10
-        self.map.info.origin.position.y = 10
-        self.map.info.width = 4
-        self.map.info.height = 2
-        self.map.info.resolution = .01 #m/cell
+        self.map.info.origin.position.x = -1
+        self.map.info.origin.position.y = -1
+
+        self.map.info.width = 40 #pixels 
+        self.map.info.height = 20 #pixels 
+        self.map.info.resolution = .1 #m/cell
         self.map.data = [0] * self.map.info.height * self.map.info.width # that row-major order
 
         # occupancy vals for ramps, where we've been, and where the samples are
@@ -54,26 +61,45 @@ class MapPublisher():
         self.map_pub.publish(self.map)
 
     def row_major_idx(self, x, y):
-        # handy helper function for determining the index of the map list given
-        # x and y values. utilizes row major order
-        return self.map.info.width*x + y
+        """
+        handy helper function for determining the index of the map list given
+        x and y values. utilizes row major order
+        """
+        return self.map.info.width*int(y) + int(x)
+
+    def set_value(self, x, y, occupancy_val):
+        # convert from meters to pixels yo
+        x = (x - self.map.info.origin.position.x) / self.map.info.resolution 
+        y = (y - self.map.info.origin.position.y) / self.map.info.resolution      
+
+        # are you in bounds??
+        if (x < self.map.info.width and x >= 0) and (y < self.map.info.height and y >= 0):
+            self.map.data[self.row_major_idx(x, y)] = occupancy_val
+        else: # you're out of bounds 
+            rospy.logwarn("Your point, (%d px, %d px), is out of bounds!", x, y)
+
+    def handle_pos_service(self, req):
+        return self.pos_cb(req.point.x, req.point.y)
  
     def pos_cb(self, pos_x, pos_y):
         # fill in squares where you are with HAVEBEEN_OCCUPANCY_VAL
-        idx = self.row_major_idx(pos_x, pos_y)
-        self.map.data[idx] = self.HAVEBEEN_OCCUPANCY_VAL 
+        self.set_value(pos_x, pos_y, self.HAVEBEEN_OCCUPANCY_VAL)
         self.publish_map()
+        return PointRequestResponse()
+
+    def handle_sample_pos_service(self, req):
+        return self.sample_cb(req.point.x, req.point.y)
 
     def sample_cb(self, sample_x, sample_y):
         # fill in squares where sample is with SAMPLE_OCCUPANCY_VAL
-        idx = self.row_major_idx(sample_x, sample_y)
-        self.map.data[idx] = self.SAMPLE_OCCUPANCY_VAL 
+        self.set_value(sample_x, sample_y, self.SAMPLE_OCCUPANCY_VAL) 
+        rospy.loginfo("Sample ahoy at (%f, %f)!", sample_x, sample_y)
         self.publish_map()
+        return PointRequestResponse()
 
     def mark_ramp(self, ramp_x, ramp_y):
         # encode where the ramp is with RAMP_OCCUPANCY_VAL
-        idx = self.row_major_idx(ramp_x, ramp_y)
-        self.map.data[idx] = self.RAMP_OCCUPANCY_VAL 
+        self.set_value(ramp_x, ramp_y, self.RAMP_OCCUPANCY_VAL)
         self.publish_map()
 
     def run(self):
@@ -89,4 +115,3 @@ if __name__ == '__main__':
         node = MapPublisher()
         node.run()
     except rospy.ROSInterruptException: pass
-
