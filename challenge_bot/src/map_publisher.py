@@ -33,13 +33,11 @@ class MapPublisher():
         self.map.header.frame_id = "map"
 
         # info stuff
-        # TODO: what should we do about the origin...
-        self.map.info.origin.position.x = 0
-        self.map.info.origin.position.y = 0
+        self.map.info.origin.position.x = -1
+        self.map.info.origin.position.y = -1
 
-        # TODO: fix the resolution issues... cells and pixels and things
-        self.map.info.width = 40
-        self.map.info.height = 20
+        self.map.info.width = 40 #pixels 
+        self.map.info.height = 20 #pixels 
         self.map.info.resolution = .1 #m/cell
         self.map.data = [0] * self.map.info.height * self.map.info.width # that row-major order
 
@@ -56,7 +54,6 @@ class MapPublisher():
 
         # TODO: use the correct value for the ramp position
         self.mark_ramp(1, 0)
-        print 'marked that ramp'
 
     def publish_map(self):
         # handy helper function to call whenever you want to update the map
@@ -64,41 +61,45 @@ class MapPublisher():
         self.map_pub.publish(self.map)
 
     def row_major_idx(self, x, y):
-        # handy helper function for determining the index of the map list given
+        """
+        handy helper function for determining the index of the map list given
+        x and y values. utilizes row major order
+        """
+        return self.map.info.width*int(y) + int(x)
 
-        # resolution things,
-        x = x/self.map.info.resolution
-        y = y/self.map.info.resolution      
+    def set_value(self, x, y, occupancy_val):
+        # convert from meters to pixels yo
+        x = (x - self.map.info.origin.position.x) / self.map.info.resolution 
+        y = (y - self.map.info.origin.position.y) / self.map.info.resolution      
 
-        # x and y values. utilizes row major order
-        return self.map.info.width*int(x) + int(y)
+        # are you in bounds??
+        if (x < self.map.info.width and x >= 0) and (y < self.map.info.height and y >= 0):
+            self.map.data[self.row_major_idx(x, y)] = occupancy_val
+        else: # you're out of bounds 
+            rospy.logwarn("Your point, (%d px, %d px), is out of bounds!", x, y)
 
     def handle_pos_service(self, req):
-        print req
         return self.pos_cb(req.point.x, req.point.y)
  
     def pos_cb(self, pos_x, pos_y):
         # fill in squares where you are with HAVEBEEN_OCCUPANCY_VAL
-        idx = self.row_major_idx(pos_x, pos_y)
-        self.map.data[idx] = self.HAVEBEEN_OCCUPANCY_VAL 
+        self.set_value(pos_x, pos_y, self.HAVEBEEN_OCCUPANCY_VAL)
         self.publish_map()
         return PointRequestResponse()
 
     def handle_sample_pos_service(self, req):
-        print req
         return self.sample_cb(req.point.x, req.point.y)
 
     def sample_cb(self, sample_x, sample_y):
         # fill in squares where sample is with SAMPLE_OCCUPANCY_VAL
-        idx = self.row_major_idx(sample_x, sample_y)
-        self.map.data[idx] = self.SAMPLE_OCCUPANCY_VAL 
+        self.set_value(sample_x, sample_y, self.SAMPLE_OCCUPANCY_VAL) 
+        rospy.loginfo("Sample ahoy at (%f, %f)!", sample_x, sample_y)
         self.publish_map()
         return PointRequestResponse()
 
     def mark_ramp(self, ramp_x, ramp_y):
         # encode where the ramp is with RAMP_OCCUPANCY_VAL
-        idx = self.row_major_idx(ramp_x, ramp_y)
-        self.map.data[idx] = self.RAMP_OCCUPANCY_VAL 
+        self.set_value(ramp_x, ramp_y, self.RAMP_OCCUPANCY_VAL)
         self.publish_map()
 
     def run(self):
