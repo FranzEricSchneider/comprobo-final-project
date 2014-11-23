@@ -22,10 +22,6 @@ class ChallengeBot():
         self.MIN_LINEAR = 0.0
         self.MAX_ANGULAR = 0.3
         self.MIN_ANGULAR = 0.0
-        self.DRIVE_CMDS = {"Right": Vector3(1, -1, 0),
-                           "Left": Vector3(1, 1, 0),
-                           "Forward": Vector3(1, 0, 0),
-                           "Back": Vector3(-1, 0, 0)}
 
         # Cutoff magnitudes below which no drive command will be published
         self.CMD_CUTOFF = 0.01
@@ -33,13 +29,14 @@ class ChallengeBot():
 
         # Stores the start time as a float, not as a Time datatype
         self.start_time = rospy.get_time()
-        # Time limit in seconds
+        # Time limit of challenge in seconds
         self.TIME_LIMIT = 10 * 60.0
 
         self.vector_pub = rospy.Publisher('/cmd_vel', Twist, queue_size=1)
 
-        # TODO: Replace this with a subscription to /obstacle_avoid topic
-        self.obs_avoid_vector = Vector3(0, 0, 0)
+        self.obs_avoid_vector = Vector3()
+        self.obs_sub = rospy.Subscriber('/obstacle_avoid', Vector3,
+                                        self.obs_cb)
 
         self.unclaimed_samples = []
         self.claimed_samples = []
@@ -62,7 +59,7 @@ class ChallengeBot():
 
     def time_left(self):
         """
-        Returns the time left, in float seconds, until time is out
+        Returns the time left for challenge, in float seconds, until time's out
         """
         return (self.start_time + self.TIME_LIMIT) - rospy.get_time()
 
@@ -84,12 +81,18 @@ class ChallengeBot():
            or not avoid_obs:
             if vector_mag(cmd_vector) > self.AVOID_CMD_CUTOFF:
                 self.drive(cmd_vector)
+                print "WRONG #1"
+                print "avoid_obs, vector_mag(self.obs_avoid_vector) < self.AVOID_CMD_CUTOFF"
+                print (avoid_obs, vector_mag(self.obs_avoid_vector) < self.AVOID_CMD_CUTOFF)
             else:
                 self.stop()
+                print "WRONG #2"
         else:
             if vector_mag(cmd_vector) < self.AVOID_CMD_CUTOFF:
                 self.drive(self.obs_avoid_vector)
+                print "WRONG #3"
             else:
+                print "GOT HERE!"
                 self.drive(vector_add(cmd_vector, self.obs_avoid_vector))
 
     def drive(self, vector):
@@ -118,3 +121,6 @@ class ChallengeBot():
             cmd.angular.z = ang / forced_turn_angle * self.MAX_ANGULAR
 
         self.vector_pub.publish(cmd)
+
+    def obs_cb(self, msg):
+        self.obs_avoid_vector = msg
