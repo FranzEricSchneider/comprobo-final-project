@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-from math import atan2
+from math import atan2, copysign, pi
 from geometry_msgs.msg import Vector3
 
 def vector_add(v1, v2):
@@ -34,3 +34,20 @@ def create_unit_vector(v1):
         v.x = v1.x / vector_mag(v1)
         v.y = v1.y / vector_mag(v1)
     return v
+
+def add_angles(angle, addition):
+    """
+    Add angles (rad) and output an angle that is bounded from -/+ pi
+    """
+    added = angle + addition
+    while abs(added) > pi:
+        added -= 2 * pi * copysign(1, added)
+    return added
+
+def angle_difference(angle1, angle2):
+    """
+    Returns the angle FROM angle1 TO angle2, in radians
+    """
+    a = angle2 - angle1
+    a = ((a + pi) % (2 * pi)) - pi
+    return a

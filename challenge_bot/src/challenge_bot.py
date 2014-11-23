@@ -12,6 +12,7 @@ from math import copysign
 
 from vector_tools import *
 
+
 class ChallengeBot():
     def __init__(self):
         rospy.init_node('ChallengeBot')
