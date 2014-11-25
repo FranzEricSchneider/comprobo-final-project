@@ -6,9 +6,10 @@
 # sample challenge on a Neato robotics platform
 
 import rospy
-from geometry_msgs.msg import Twist, Vector3
+from geometry_msgs.msg import Twist, Vector3, Point
 from copy import deepcopy
 from math import copysign
+from random import random
 
 from vector_tools import *
 
@@ -38,8 +39,15 @@ class ChallengeBot():
         self.obs_sub = rospy.Subscriber('/obstacle_avoid', Vector3,
                                         self.obs_cb)
 
+        self.current_pos = Point()
+        self.pos_sub = rospy.Subscriber('/current_pos', Point,
+                                        self.pos_cb)
+
         self.unclaimed_samples = []
         self.claimed_samples = []
+
+        # Logic for the SEEK behavior
+        self.last_seek_cmd = Vector3()
 
     def stop(self):
         """
@@ -119,6 +127,18 @@ class ChallengeBot():
     def obs_cb(self, msg):
         self.obs_avoid_vector = msg
 
+    def pos_cb(self, msg):
+        self.current_pos = msg
+
     def seek(self):
-        # TODO: Make code that checks the map, finds the direction to go,
-        # and adds a vector in that direction
+        # TODO: Make smarter code that checks the map, finds the direction to
+        # go, and adds a vector in that direction
+        v = Vector3(random(), random()*2 - 1, 0)
+        self.last_seek_cmd = create_unit_vector(vector_add(v,
+                                                           self.last_seek_cmd))
+        return self.last_seek_cmd
+
+    def grab(self):
+        # TODO: Flesh this case out
+        v = Vector3()
+        return v

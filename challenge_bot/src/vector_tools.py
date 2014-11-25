@@ -1,4 +1,9 @@
 #!/usr/bin/env python
+
+# Emily Wang, Eric Schneider
+# Computational Robotics, Fall 2014, Olin College, taught by Paul Ruvolo
+# This code has basic tools for working with Vector3 vectors
+
 from math import atan2, copysign, pi
 from geometry_msgs.msg import Vector3
 
@@ -20,7 +25,7 @@ def vector_mag(v):
     mag = pow(pow(v.x, 2) + pow(v.y, 2) + pow(v.z, 2), 0.5)
     return mag
 
-# Asngle assumes 2D vector, returns in radians
+# Angle assumes 2D vector, returns in radians
 # Horizontal (1, 0) is an angle of 0, sweeps (+/-) going (CCW/CW)
 def vector_ang(v):
     ang = -atan2(-v.y, v.x)
