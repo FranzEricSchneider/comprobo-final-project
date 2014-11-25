@@ -53,11 +53,11 @@ class ObstacleAvoid():
     def avoidance_publisher(self):
         v = Vector3()
         points = deepcopy(self.valid_points)
-        max_meas = 0
+        max_reaction = 0
         for point in points.keys():
             reaction = self.OBS_SENSITIVITY - points[point]
-            if reaction > max_meas:
-                max_meas = reaction
+            if reaction > max_reaction:
+                max_reaction = reaction
             unit_vector = [cos(point * (pi / 180.0)),
                            sin(point * (pi / 180.0))]
             x_val = max(reaction, 0.0) * -unit_vector[0]
@@ -65,7 +65,7 @@ class ObstacleAvoid():
             v = vector_add(v, Vector3(x_val, y_val, 0.0))
 
         if max(abs(v.x), abs(v.y)) > 0:
-            strength = self.AVOID_STRENGTH * max_meas / max(abs(v.x), abs(v.y))
+            strength = self.AVOID_STRENGTH * max_reaction / max(abs(v.x), abs(v.y))
             v = vector_multiply(v, strength)
         else:
             v = Vector3()
