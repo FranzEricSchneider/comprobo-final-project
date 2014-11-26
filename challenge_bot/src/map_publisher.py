@@ -90,7 +90,6 @@ class MapPublisher():
         return PointRequestResponse()
 
     def handle_sample_pos_service(self, req):
-        print req
         return self.sample_cb(req.point.x, req.point.y, req.fiducial)
 
     def sample_cb(self, sample_x, sample_y, sample_f_str):
