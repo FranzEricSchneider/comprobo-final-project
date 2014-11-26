@@ -9,7 +9,7 @@ class PositionMapper():
         rospy.init_node("PositionMapper")
         rospy.wait_for_service('add_pos_to_map')
         self.map_pos_service = rospy.ServiceProxy('add_pos_to_map', PointRequest)
-        self.laser_sub = rospy.Subscriber('/current_pos', Point, self.pos_cb)
+        self.pos_sub = rospy.Subscriber('/current_pos', Point, self.pos_cb)
         rospy.loginfo("Beginning the current_pos mapping node")
         rospy.spin()
 
