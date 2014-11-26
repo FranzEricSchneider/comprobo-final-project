@@ -1,5 +1,8 @@
 <launch>
 
+  <node pkg="tf" type="static_transform_publisher" name="world_to_map" 
+    args="0 0 0 0 0 0 world map 1" />
+
   <!-- Publishes and updates the map -->
   <node name="map_publisher" pkg="challenge_bot" type="map_publisher.py"/>
   <!-- Publishes current location of the robot -->
