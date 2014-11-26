@@ -11,6 +11,7 @@ from copy import deepcopy
 from math import copysign
 from random import random
 
+from waypoint import Waypoint
 from vector_tools import *
 from map_tools import *
 
@@ -44,8 +45,8 @@ class ChallengeBot():
         self.map = OccupancyGrid()
         self.map_sub = rospy.Subscriber('/map', OccupancyGrid, self.map_cb)
 
-        self.unclaimed_samples = []
-        self.claimed_samples = []
+        self.unclaimed_samples = {}
+        self.claimed_samples = {}
 
         # Logic for the SEEK behavior
         self.last_seek_cmd = Vector3()
@@ -125,6 +126,16 @@ class ChallengeBot():
 
         self.vector_pub.publish(cmd)
 
+    # TODO: The drive_wapyoints code needs tp be tested
+    def drive_waypoints(self, waypoints):
+        r = rospy.Rate(0.25)
+        for wp in waypoints:
+            while not wp.is_complete(self.current_pos)\
+                  and not rospy.is_shutdown():
+                self.drive_robot(wp.vector_to_wp(self.current_pos))
+                r.sleep()
+        return
+
     def obs_cb(self, msg):
         self.obs_avoid_vector = msg
 
@@ -133,6 +144,10 @@ class ChallengeBot():
 
     def map_cb(self, msg):
         self.map = msg
+        mapped_samples = get_known_samples(self.map)
+        for key in mapped_samples.keys():
+            if not key in self.claimed_samples.keys():
+                self.unclaimed_samples[key] = mapped_samples[key]
 
     def seek(self):
         # TODO: Make smarter code that checks the map, finds the direction to
@@ -144,6 +159,34 @@ class ChallengeBot():
 
     def grab(self):
         # TODO: Flesh this case out
-        print get_known_samples(self.map)
-        v = avg_point_of_value(self.map, 30)
-        return v
+        goal = closest_sample()
+        wp = Waypoint(self.unclaimed_samples[goal], 1.5)
+        self.drive_waypoints([wp])
+
+        # If waypoint is visible [Talk to Emily about how to determine this]
+            # Drive to goal perpindicular to sample, 1m away
+        # Else (waypoint is not visible)
+            # Drive to goal 90 degrees around the circle from where we are
+        # Turn towards the sample
+        # If the waypoint is still not visible
+            # Erase the unclaimed sample from the map/dictionary and return?
+        # Drive towards sample, check off using the value of goal
+
+        return Vector3()
+
+    # TODO: This is untested on the robot
+    def closest_sample():
+        """
+        Looks at the unclaimed_samples dictionary and returns the key for the
+        closest sample
+        """
+        closest_key = self.unclaimed_samples.keys()[0]
+        min_distance = pt_to_pt_distance(self.current_pos,
+                                         self.unclaimed_samples[closest_key])
+        for key in self.unclaimed_samples.keys():
+            diff = pt_to_pt_distance(self.current_pos,
+                                     self.unclaimed_samples[key])
+            if diff < min_distance:
+                closest_key = key
+                min_distance = diff
+        return closest_key
