@@ -4,7 +4,7 @@
 # Computational Robotics, Fall 2014, Olin College, taught by Paul Ruvolo
 # This code has basic tools for working with Vector3 vectors
 
-from math import atan2, copysign, pi
+from math import atan2, cos, sin, copysign, pi
 from geometry_msgs.msg import Vector3
 
 def vector_add(v1, v2):
@@ -30,6 +30,15 @@ def vector_mag(v):
 def vector_ang(v):
     ang = -atan2(-v.y, v.x)
     return ang
+
+def create_angled_vector(angle=0.0, magnitude=1.0):
+    """
+    Creates a vector at the desired angle, with the desired strength
+    """
+    x = cos(angle)
+    y = sin(angle)
+    v = Vector3(x, y, 0)
+    return vector_multiply(v, magnitude)
 
 def create_unit_vector(v1):
     v = Vector3()

@@ -21,9 +21,9 @@ class ChallengeBot():
         rospy.init_node('ChallengeBot')
 
         # Sets the max/min velocity (m/s) and linear velocity (rad/s)
-        self.MAX_LINEAR = 0.1
+        self.MAX_LINEAR = 0.25
         self.MIN_LINEAR = 0.0
-        self.MAX_ANGULAR = 0.3
+        self.MAX_ANGULAR = 1.0
         self.MIN_ANGULAR = 0.0
 
         # Cutoff magnitudes below which no drive command will be published
@@ -128,12 +128,16 @@ class ChallengeBot():
 
     # TODO: The drive_wapyoints code needs tp be tested
     def drive_waypoints(self, waypoints):
-        r = rospy.Rate(0.25)
+        r = rospy.Rate(10)
         for wp in waypoints:
             while not wp.is_complete(self.current_pos)\
                   and not rospy.is_shutdown():
+                v = wp.vector_to_wp(self.current_pos)
+                rospy.loginfo('------ Publishing vector \n%s to point \n%s',
+                              str(v), str(wp.point))
                 self.drive_robot(wp.vector_to_wp(self.current_pos))
                 r.sleep()
+        self.stop()
         return
 
     def obs_cb(self, msg):
@@ -155,7 +159,7 @@ class ChallengeBot():
         v = Vector3(random(), random()*2 - 1, 0)
         self.last_seek_cmd = create_unit_vector(vector_add(v,
                                                            self.last_seek_cmd))
-        return self.last_seek_cmd
+        return self.last_seek_cm
 
     def grab(self):
         # TODO: Flesh this case out

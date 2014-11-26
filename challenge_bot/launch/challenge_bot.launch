@@ -1,15 +1,20 @@
 <launch>
 
+  <node pkg="tf" type="static_transform_publisher" name="world_to_map" 
+    args="0 0 0 0 0 0 world map 1" />
+
   <!-- Publishes and updates the map -->
   <node name="map_publisher" pkg="challenge_bot" type="map_publisher.py"/>
   <!-- Publishes current location of the robot -->
   <node name="current_position" pkg="challenge_bot" type="current_position.py"/>
+  <!-- Takes the current position and writes it to the map -->
+  <node name="position_mapper" pkg="challenge_bot" type="pos_mapper.py"/>
   <!-- Publishes a vector that points way from obstacles -->
-  <node name="obstacle_avoid" pkg="challenge_bot" type="obstacle_avoid.py"/>
+  <!-- <node name="obstacle_avoid" pkg="challenge_bot" type="obstacle_avoid.py"/> -->
   <!-- Publishes the location of samples -->
-  <include file="$(find challenge_bot)/launch/publish_sample_tf.launch"/>
+  <!-- <include file="$(find challenge_bot)/launch/publish_sample_tf.launch"/> -->
 
   <!-- Creates a Robot object and direct the actions of the robot -->
-  <node name="state_machine" pkg="challenge_bot" type="state_machine.py"/>
+  <!-- <node name="state_machine" pkg="challenge_bot" type="state_machine.py"/> -->
 
 </launch>
