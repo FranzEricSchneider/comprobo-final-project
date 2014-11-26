@@ -44,12 +44,7 @@ class SampleMapper():
 
             # calls the service to update the map
             rospy.loginfo("Putting the sample position on the map!")
-
             sp = SamplePointRequest(fiducial_pos, f_str)
-            print f_str
-            print type(sp)
-            print sp
-            print 
             self.add_sample_pos_service(sp)
         except:
             rospy.loginfo("You probably can't see %s in the camera frame. (sample_lookupTransform)", f_str)
@@ -58,7 +53,6 @@ class SampleMapper():
         fiducials = ['a', 'b', 'c', 'd', 'g', 'f']
         for f in fiducials:
             self.sample_lookupTransform(f, msg)
-        rospy.loginfo("yaaay fiducials. sample_pos_cb done")
 
 if __name__ == '__main__':
     # test that jazz!
@@ -66,4 +60,4 @@ if __name__ == '__main__':
         node = SampleMapper()
         node.run()
     except:
-        rospy.logwarn("there's an issue with the sample mapper")
+        rospy.logwarn("There's an issue with the sample mapper")
