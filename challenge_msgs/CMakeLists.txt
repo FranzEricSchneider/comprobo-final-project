@@ -53,6 +53,7 @@ find_package(catkin REQUIRED COMPONENTS
 add_service_files(
   FILES
   PointRequest.srv
+  SamplePoint.srv
 )
 
 ## Generate actions in the 'action' folder

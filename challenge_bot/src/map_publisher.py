@@ -9,6 +9,7 @@
 import rospy
 from nav_msgs.msg import MapMetaData, OccupancyGrid
 from challenge_msgs.srv import PointRequest, PointRequestResponse
+from challenge_msgs.srv import SamplePoint, SamplePointResponse
 
 class MapPublisher():
     def __init__(self):
@@ -25,7 +26,7 @@ class MapPublisher():
         pos_s = rospy.Service('add_pos_to_map', PointRequest, self.handle_pos_service)
 
         # set up the service for updating the map with sample locations
-        sample_s = rospy.Service('add_sample_pos_to_map', PointRequest, self.handle_sample_pos_service)
+        sample_s = rospy.Service('add_sample_pos_to_map', SamplePoint, self.handle_sample_pos_service)
 
         # header stuff
         self.map.header.seq = 0 # increment this every time we publish the map
@@ -95,7 +96,7 @@ class MapPublisher():
         self.set_value(sample_x, sample_y, self.SAMPLE_OCCUPANCY_VAL) 
         rospy.loginfo("Sample ahoy at (%f, %f)!", sample_x, sample_y)
         self.publish_map()
-        return PointRequestResponse()
+        return SamplePointResponse()
 
     def mark_ramp(self, ramp_x, ramp_y):
         # encode where the ramp is with RAMP_OCCUPANCY_VAL

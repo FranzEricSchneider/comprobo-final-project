@@ -1,0 +1,4 @@
+# message for sample points
+geometry_msgs/Point point
+string fiducial
+---
