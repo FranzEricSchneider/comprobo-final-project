@@ -6,11 +6,13 @@
 
 import rospy
 from geometry_msgs.msg import Twist, Vector3, Point
+from nav_msgs.msg import OccupancyGrid
 from copy import deepcopy
 from math import copysign
 from random import random
 
 from vector_tools import *
+from map_tools import *
 
 
 class ChallengeBot():
@@ -37,10 +39,10 @@ class ChallengeBot():
         self.obs_avoid_vector = Vector3()
         self.obs_sub = rospy.Subscriber('/obstacle_avoid', Vector3,
                                         self.obs_cb)
-
         self.current_pos = Point()
-        self.pos_sub = rospy.Subscriber('/current_pos', Point,
-                                        self.pos_cb)
+        self.pos_sub = rospy.Subscriber('/current_pos', Point, self.pos_cb)
+        self.map = OccupancyGrid()
+        self.map_sub = rospy.Subscriber('/map', OccupancyGrid, self.map_cb)
 
         self.unclaimed_samples = []
         self.claimed_samples = []
@@ -129,6 +131,9 @@ class ChallengeBot():
     def pos_cb(self, msg):
         self.current_pos = msg
 
+    def map_cb(self, msg):
+        self.map = msg
+
     def seek(self):
         # TODO: Make smarter code that checks the map, finds the direction to
         # go, and adds a vector in that direction
@@ -139,5 +144,6 @@ class ChallengeBot():
 
     def grab(self):
         # TODO: Flesh this case out
-        v = Vector3()
+        print get_known_samples(self.map)
+        v = avg_point_of_value(self.map, 30)
         return v

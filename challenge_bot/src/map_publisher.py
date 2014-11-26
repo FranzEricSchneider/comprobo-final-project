@@ -47,7 +47,7 @@ class MapPublisher():
         self.SAMPLE_OCCUPANCY_VAL = 20
 
         # publisher/subscriber stuff
-        self.map_pub = rospy.Publisher("map",OccupancyGrid)
+        self.map_pub = rospy.Publisher("/map", OccupancyGrid)
         # TODO: edit and uncomment these lines when these subscribers have been made
         # rospy.Subscriber("current_pos", subscribertype, somecallback, queue_size=1)
         # rospy.Subscriber("sample_finder", subscribertype, somecallback, queue_size=1)
