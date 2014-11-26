@@ -9,19 +9,17 @@ import rospy
 
 class SampleMapper():
     def __init__(self):
-        pass
-
-    def run(self):
         rospy.init_node("sample_mapper")
-        
+        rospy.wait_for_service("add_sample_pos_to_map")
+        add_sample_pos = rospy.ServiceProxy("add_sample_pos_to_map", PointRequest.srv)
+        #tf stuff
+        rospy.loginfo("sample mapper!")
+        rospy.spin()
 
-# run
-# init node
-# rospy.wait_for_service("add_sample_pos_to_map")
-# add_sample_pos = rospy.ServiceProxy("add_sample_pos_to_map", )
-# service proxy
-# laser subscriber
-# spin
+    def sample_pos_cb(self):
+        # digesting tf information
+
+        # calls the service to update the map
 
 
 if __name__ == '__main__':
