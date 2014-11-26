@@ -9,6 +9,7 @@
 import rospy
 from nav_msgs.msg import MapMetaData, OccupancyGrid
 from challenge_msgs.srv import PointRequest, PointRequestResponse
+from challenge_msgs.srv import SamplePoint, SamplePointResponse
 
 class MapPublisher():
     def __init__(self):
@@ -25,7 +26,7 @@ class MapPublisher():
         pos_s = rospy.Service('add_pos_to_map', PointRequest, self.handle_pos_service)
 
         # set up the service for updating the map with sample locations
-        sample_s = rospy.Service('add_sample_pos_to_map', PointRequest, self.handle_sample_pos_service)
+        sample_s = rospy.Service('add_sample_pos_to_map', SamplePoint, self.handle_sample_pos_service)
 
         # header stuff
         self.map.header.seq = 0 # increment this every time we publish the map
@@ -44,10 +45,11 @@ class MapPublisher():
         # occupancy vals for ramps, where we've been, and where the samples are
         self.RAMP_OCCUPANCY_VAL = 30
         self.HAVEBEEN_OCCUPANCY_VAL = 10
-        self.SAMPLE_OCCUPANCY_VAL = 20
+        # self.SAMPLE_OCCUPANCY_VAL = 20
+        self.SAMPLE_OCCUPANCY_VALS = {'a':20, 'b':21, 'c':22, 'd':23, 'g':24, 'f':25}
 
         # publisher/subscriber stuff
-        self.map_pub = rospy.Publisher("map",OccupancyGrid)
+        self.map_pub = rospy.Publisher("/map",OccupancyGrid, queue_size=1)
         # TODO: edit and uncomment these lines when these subscribers have been made
         # rospy.Subscriber("current_pos", subscribertype, somecallback, queue_size=1)
         # rospy.Subscriber("sample_finder", subscribertype, somecallback, queue_size=1)
@@ -88,14 +90,14 @@ class MapPublisher():
         return PointRequestResponse()
 
     def handle_sample_pos_service(self, req):
-        return self.sample_cb(req.point.x, req.point.y)
+        return self.sample_cb(req.point.x, req.point.y, req.fiducial)
 
-    def sample_cb(self, sample_x, sample_y):
-        # fill in squares where sample is with SAMPLE_OCCUPANCY_VAL
-        self.set_value(sample_x, sample_y, self.SAMPLE_OCCUPANCY_VAL) 
-        rospy.loginfo("Sample ahoy at (%f, %f)!", sample_x, sample_y)
+    def sample_cb(self, sample_x, sample_y, sample_f_str):
+        # fill in squares where sample is with the appropriate SAMPLE_OCCUPANCY_VAL for sample_f_str
+        self.set_value(sample_x, sample_y, self.SAMPLE_OCCUPANCY_VALS[sample_f_str]) 
+        rospy.loginfo("Sample %s ahoy at (%f, %f)!", sample_f_str, sample_x, sample_y)
         self.publish_map()
-        return PointRequestResponse()
+        return SamplePointResponse()
 
     def mark_ramp(self, ramp_x, ramp_y):
         # encode where the ramp is with RAMP_OCCUPANCY_VAL
