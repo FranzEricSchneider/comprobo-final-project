@@ -8,6 +8,7 @@
 import rospy
 import tf
 import point_tools
+import copy
 from geometry_msgs.msg import Point
 from challenge_msgs.srv import PointRequest, PointRequestRequest
 
@@ -29,12 +30,13 @@ class SampleMapper():
         # digesting tf information
         try:
             # get info from tf
-            (trans, rot) = self.tf_listener.lookupTransform('camera_frame', 'g', rospy.Time(0))
+            (trans, rot) = self.tf_listener.lookupTransform('camera_frame', 'f', rospy.Time(0))
 
             # add tf values to current_pos message values to get the fiducial position
-            # TODO: perhaps make this unpacking more elegant (use a deepcopy of current_pos?)
-            fiducial_pos = [msg.x + trans[0], msg.y + trans[1], msg.z + trans[2]]
-            fiducial_pos = point_tools.array_to_point(fiducial_pos)
+            fiducial_pos = copy.deepcopy(msg)
+            fiducial_pos.x += trans[0]
+            fiducial_pos.y += trans[1]
+            fiducial_pos.z += trans[2]
 
             # # calls the service to update the map
             rospy.loginfo("Putting the sample position on the map!")
