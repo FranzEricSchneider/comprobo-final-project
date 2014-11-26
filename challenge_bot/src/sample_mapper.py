@@ -7,6 +7,7 @@
 
 import rospy
 import tf
+import point_tools
 from geometry_msgs.msg import Point
 from challenge_msgs.srv import PointRequest, PointRequestRequest
 
@@ -16,9 +17,9 @@ class SampleMapper():
         rospy.loginfo("sample mapper node setup!")
 
         rospy.wait_for_service("add_sample_pos_to_map")
-        self.tf_listener = tf.TransformListener()     
-        
         self.add_sample_pos_service = rospy.ServiceProxy("add_sample_pos_to_map", PointRequest)
+        
+        self.tf_listener = tf.TransformListener()     
         self.pos_sub = rospy.Subscriber('/current_pos', Point, self.sample_pos_cb)
 
         rate = rospy.Rate(10.0)
@@ -27,25 +28,20 @@ class SampleMapper():
     def sample_pos_cb(self, msg):
         # digesting tf information
         try:
-            (trans_d, rot_d) = self.tf_listener.lookupTransform('camera_frame', 'a', rospy.Time(0))
-            print trans_d
+            # get info from tf
+            (trans, rot) = self.tf_listener.lookupTransform('camera_frame', 'g', rospy.Time(0))
+
+            # add tf values to current_pos message values to get the fiducial position
+            # TODO: perhaps make this unpacking more elegant (use a deepcopy of current_pos?)
+            fiducial_pos = [msg.x + trans[0], msg.y + trans[1], msg.z + trans[2]]
+            fiducial_pos = point_tools.array_to_point(fiducial_pos)
+
+            # # calls the service to update the map
+            rospy.loginfo("Putting the sample position on the map!")
+            self.add_sample_pos_service(PointRequestRequest(fiducial_pos))     
+
         except:
             rospy.loginfo("sample_pos_cb issues")
-
-        # calls the service to update the map
-
-    # def run(self):
-    #     rate = rospy.Rate(10.0)
-    #     while not rospy.is_shutdown():
-    #         try:
-    #             (trans_a, rot_a) = self.tf_listener.lookupTransform('camera_frame', 'a', rospy.Time(0))
-    #             (trans_b, rot_b) = self.tf_listener.lookupTransform('camera_frame', 'b', rospy.Time(0))
-    #             (trans_c, rot_c) = self.tf_listener.lookupTransform('camera_frame', 'c', rospy.Time(0))
-    #             (trans_d, rot_d) = self.tf_listener.lookupTransform('camera_frame', 'd', rospy.Time(0))
-    #             (trans_g, rot_g) = self.tf_listener.lookupTransform('camera_frame', 'g', rospy.Time(0))
-    #             (trans_f, rot_f) = self.tf_listener.lookupTransform('camera_frame', 'f', rospy.Time(0))
-    #         except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
-    #             rospy.loginfo("tf lookupTransform issues")
 
 if __name__ == '__main__':
     # test that jazz!
