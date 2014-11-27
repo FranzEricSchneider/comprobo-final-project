@@ -149,9 +149,10 @@ class ChallengeBot():
     def map_cb(self, msg):
         self.map = msg
         mapped_samples = get_known_samples(self.map)
-        for key in mapped_samples.keys():
-            if not key in self.claimed_samples.keys():
-                self.unclaimed_samples[key] = mapped_samples[key]
+        if mapped_samples != None:
+            for key in mapped_samples.keys():
+                if not key in self.claimed_samples.keys():
+                    self.unclaimed_samples[key] = mapped_samples[key]
 
     def seek(self):
         # TODO: Make smarter code that checks the map, finds the direction to
