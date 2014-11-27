@@ -61,6 +61,8 @@ class Grab(smach.State):
         r = rospy.Rate(5)
 
         while not rospy.is_shutdown():
+            # TODO: Change this structure so that grab is a self-contained
+            # function that returns "timeout" or "no-sample"
             if len(challenger.unclaimed_samples) <= 0:
                 self.result = 'no-sample'
                 break

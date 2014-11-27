@@ -5,15 +5,17 @@
 # sample challenge on a Neato robotics platform
 
 import rospy
+import tf
 from geometry_msgs.msg import Twist, Vector3, Point
 from nav_msgs.msg import OccupancyGrid
 from copy import deepcopy
-from math import copysign
+from math import copysign, pi
 from random import random
 
 from waypoint import Waypoint
-from vector_tools import *
 from map_tools import *
+from point_tools import *
+from vector_tools import *
 
 
 class ChallengeBot():
@@ -47,6 +49,8 @@ class ChallengeBot():
 
         self.unclaimed_samples = {}
         self.claimed_samples = {}
+        self.tf_listener = tf.TransformListener()
+        self.SAMPLE_IDS = {20:'a', 21:'b', 22:'c', 23:'d', 24:'g', 25:'f'}
 
         # Logic for the SEEK behavior
         self.last_seek_cmd = Vector3()
@@ -77,10 +81,18 @@ class ChallengeBot():
         """
         Drives a given angle, (CCW, CW) is (+/-). In radians
         """
-        angle_cmd = Twist(angular=Vector3(0, 0, copysign(1, angle)))
+        angle_cmd = Twist(angular=Vector3(0, 0, copysign(1.05, angle)))
         self.vector_pub.publish(angle_cmd)
         rospy.sleep(abs(angle))
         self.stop()
+
+    def point_robot_at_target(self, point):
+        """
+        Takes a Point on the map and tries to point the robot at it
+        """
+        delta_point = point_difference(self.current_pos, point)
+        goal_angle = vector_ang(point_to_vector(delta_point))
+        self.drive_angle(angle_difference(self.current_pos.z, goal_angle))
 
     def drive_robot(self, cmd_vector, avoid_obs=True):
         """
@@ -126,9 +138,8 @@ class ChallengeBot():
 
         self.vector_pub.publish(cmd)
 
-    # TODO: The drive_wapyoints code needs tp be tested
     def drive_waypoints(self, waypoints):
-        r = rospy.Rate(10)
+        r = rospy.Rate(15)
         for wp in waypoints:
             while not wp.is_complete(self.current_pos)\
                   and not rospy.is_shutdown():
@@ -159,13 +170,42 @@ class ChallengeBot():
         v = Vector3(random(), random()*2 - 1, 0)
         self.last_seek_cmd = create_unit_vector(vector_add(v,
                                                            self.last_seek_cmd))
-        return self.last_seek_cm
+        return self.last_seek_cmd
 
     def grab(self):
         # TODO: Flesh this case out
-        goal = closest_sample()
+        goal = self.closest_sample()
         wp = Waypoint(self.unclaimed_samples[goal], 1.5)
+        rospy.loginfo('Driving towards the nearest sample, %d, at \n%s',
+                      goal, str(self.unclaimed_samples[goal]))
         self.drive_waypoints([wp])
+        rospy.loginfo('Finished the rough positioning towards the sample')
+
+        # Try for 10 cycles to find the fiducial
+        sample_seen = False
+        rospy.loginfo('Beginning to look for the %s sample',
+                      self.SAMPLE_IDS[goal])
+        for i in range(10):
+            try:
+                sample_tf = self.tf_listener.lookupTransform('camera_frame',
+                                                             self.SAMPLE_IDS[goal],
+                                                             rospy.Time(0))
+                print sample_tf
+                rospy.loginfo("SUCCESS -- Saw the sample on cycle %d", i)
+                sample_seen = True
+                break
+            except:
+                rospy.logwarn("Couldn't see sample: %d", i)
+
+        if not sample_seen:
+            # TODO: Implement avoid_point here
+            wp = wp_around_sample(goal)
+            rospy.loginfo('Driving around sample to waypoint \n%s', str(wp))
+            self.drive_waypoints([wp])
+            rospy.loginfo('Finished driving around the waypoint')
+
+        print goal
+        print self.SAMPLE_IDS[goal]
 
         # If waypoint is visible [Talk to Emily about how to determine this]
             # Drive to goal perpindicular to sample, 1m away
@@ -178,8 +218,7 @@ class ChallengeBot():
 
         return Vector3()
 
-    # TODO: This is untested on the robot
-    def closest_sample():
+    def closest_sample(self):
         """
         Looks at the unclaimed_samples dictionary and returns the key for the
         closest sample
@@ -194,3 +233,22 @@ class ChallengeBot():
                 closest_key = key
                 min_distance = diff
         return closest_key
+
+    # TODO: This is untested
+    def wp_around_sample(self, goal_sample):
+        """
+        Creates a waypoint that is pi/4 radians around the sample from where
+        the robot currently is, with a radius of RADIUS
+        """
+        RADIUS = 0.1
+
+        # This point and vector juggling is silly, but easy :P
+        offset_point = point_difference(self.current_pos,
+                                        self.unclaimed_samples[goal_sample])
+        offset_vector = point_to_vector(offset_point)
+        new_vector = create_angled_vector(add_angles(vector_ang(offset_vector),
+                                                     pi / 4),
+                                          pow(2 * pow(vector_mag(offset_vector), 2), 0.5))
+        return Waypoint(add_points(self.current_pos,
+                                     vector_to_point(new_vector)),
+                          RADIUS)
