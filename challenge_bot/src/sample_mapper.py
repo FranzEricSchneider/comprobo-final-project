@@ -43,7 +43,7 @@ class SampleMapper():
             fiducial_pos.z += trans[1]
 
             # calls the service to update the map
-            rospy.loginfo("Putting the sample position on the map!")
+            rospy.loginfo("Putting the sample %s's position on the map! (sample_lookupTransform)", f_str)
             sp = SamplePointRequest(fiducial_pos, f_str)
             self.add_sample_pos_service(sp)
         except:

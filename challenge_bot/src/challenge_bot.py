@@ -1,15 +1,17 @@
 #!/usr/bin/env python
+
 # Emily Wang, Eric Schneider
 # Computational Robotics, Fall 2014, Olin College, taught by Paul Ruvolo
 # This code is the main class code for a robot that is prototyping the NASA
 # sample challenge on a Neato robotics platform
 
 import rospy
-from geometry_msgs.msg import Twist, Vector3, Point
+from geometry_msgs.msg import Twist, Vector3, Point, PoseStamped, Pose, Quaternion
 from nav_msgs.msg import OccupancyGrid
 from copy import deepcopy
 from math import copysign
 from random import random
+from tf.transformations import quaternion_from_euler
 
 from waypoint import Waypoint
 from vector_tools import *
@@ -21,9 +23,9 @@ class ChallengeBot():
         rospy.init_node('ChallengeBot')
 
         # Sets the max/min velocity (m/s) and linear velocity (rad/s)
-        self.MAX_LINEAR = 0.25
+        self.MAX_LINEAR = 0.1
         self.MIN_LINEAR = 0.0
-        self.MAX_ANGULAR = 1.0
+        self.MAX_ANGULAR = .3
         self.MIN_ANGULAR = 0.0
 
         # Cutoff magnitudes below which no drive command will be published
@@ -44,6 +46,10 @@ class ChallengeBot():
         self.pos_sub = rospy.Subscriber('/current_pos', Point, self.pos_cb)
         self.map = OccupancyGrid()
         self.map_sub = rospy.Subscriber('/map', OccupancyGrid, self.map_cb)
+
+        self.obstacle_avoid_vector_pub = rospy.Publisher('/obstacle_avoid_vector', PoseStamped, queue_size=1)
+        self.cmd_vector_pub = rospy.Publisher('/cmd_vector', PoseStamped, queue_size=1)
+        self.oa_cmd_combined_vector_pub = rospy.Publisher('/oa_cmd_combined_vector', PoseStamped, queue_size=1)
 
         self.unclaimed_samples = {}
         self.claimed_samples = {}
@@ -82,13 +88,54 @@ class ChallengeBot():
         rospy.sleep(abs(angle))
         self.stop()
 
+    def vector_point_orientation(self, v):
+        """
+        Returns the point and orientation required to make a Pose for input vector v.
+        """
+        v_point = Point(v.x, v.y, 0)
+        v_orientation = quaternion_from_euler(0, 0, v.z) # roll, pitch, yaw
+        v_orientation = Quaternion(v_orientation[0], v_orientation[1], v_orientation[2], v_orientation[3])
+        return (v_point, v_orientation)
+
     def drive_robot(self, cmd_vector, avoid_obs=True):
         """
         Takes in a Vector3 direction in which to drive the robot, then layers
         the obstacle avoid vector on top of that, if asked to
         """
+        print "obs_avoid_vector magnitude: ", vector_mag(self.obs_avoid_vector)
+        print "cmd_vector magnitude: ", vector_mag(cmd_vector), "\n"
+
+        combined_vector = vector_add(cmd_vector, self.obs_avoid_vector)
+        
+        # publish poses: obs, cmd, combined vector_add(cmd_vector, self.obs_avoid_vector)
+        # self.obstacle_avoid_vector_pub.publish(Pose(self.obs_avoid_vector.x, self.obs_avoid_vector.y))
+        # self.cmd_vector_pub.publish(Pose(cmd_vector.x, cmd_vector.y))
+        # self.oa_cmd_combined_vector_pub.publish(Pose(combined_vector.x, combined_vector.y))
+
+        obstacle_avoid_vector_po = self.vector_point_orientation(self.obs_avoid_vector)        
+        cmd_vector_po = self.vector_point_orientation(cmd_vector)
+        combined_vector_po = self.vector_point_orientation(combined_vector)
+
+        oa_pose = PoseStamped()
+        oa_pose.header.seq = 0 
+        oa_pose.header.stamp = rospy.Time.now()
+        oa_pose.header.frame_id = "obstacle_avoidance_pose"
+        oa_pose.pose = Pose(obstacle_avoid_vector_po[0], obstacle_avoid_vector_po[1])
+
+        self.obstacle_avoid_vector_pub.publish(oa_pose)
+        # print type(obstacle_avoid_vector_po[0]), obstacle_avoid_vector_po[0]
+        # print type(obstacle_avoid_vector_po[1]), obstacle_avoid_vector_po[1]
+        print oa_pose
+        print type(oa_pose)
+        # print type(oa_pose.position)
+        # print type(oa_pose.orientation)
+
+        # self.cmd_vector_pub.publish(Pose(cmd_vector_po[0], cmd_vector_po[1]))
+        # self.oa_cmd_combined_vector_pub.publish(Pose(combined_vector_po[0], combined_vector_po[1]))
+
         if vector_mag(self.obs_avoid_vector) < self.AVOID_CMD_CUTOFF\
            or not avoid_obs:
+
             if vector_mag(cmd_vector) > self.AVOID_CMD_CUTOFF:
                 self.drive(cmd_vector)
             else:
@@ -97,7 +144,7 @@ class ChallengeBot():
             if vector_mag(cmd_vector) < self.AVOID_CMD_CUTOFF:
                 self.drive(self.obs_avoid_vector)
             else:
-                self.drive(vector_add(cmd_vector, self.obs_avoid_vector))
+                self.drive(combined_vector)
 
     def drive(self, vector):
         """
@@ -133,8 +180,6 @@ class ChallengeBot():
             while not wp.is_complete(self.current_pos)\
                   and not rospy.is_shutdown():
                 v = wp.vector_to_wp(self.current_pos)
-                rospy.loginfo('------ Publishing vector \n%s to point \n%s',
-                              str(v), str(wp.point))
                 self.drive_robot(wp.vector_to_wp(self.current_pos))
                 r.sleep()
         self.stop()
