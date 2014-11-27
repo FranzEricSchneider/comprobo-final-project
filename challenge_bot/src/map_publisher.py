@@ -34,11 +34,11 @@ class MapPublisher():
         self.map.header.frame_id = "map"
 
         # info stuff
-        self.map.info.origin.position.x = -1
-        self.map.info.origin.position.y = -1
+        self.map.info.origin.position.x = -4
+        self.map.info.origin.position.y = -4
 
-        self.map.info.width = 40 #pixels 
-        self.map.info.height = 20 #pixels 
+        self.map.info.width = 80 #pixels 
+        self.map.info.height = 80 #pixels 
         self.map.info.resolution = .1 #m/cell
         self.map.data = [0] * self.map.info.height * self.map.info.width # that row-major order
 

@@ -2,13 +2,9 @@
 
 # Written by Eric Schneider for the CompRobo warmup project
 # Computational Robotics, Fall 2014, Olin College, taught by Paul Ruvolo
-#
-# Stuff about how it works...
-#
-# In the code below I couldn't get the input_keys methods to apprpriately
-# pass a class object. The sm_robot class was either not passed into the
-# states, or it was passed as a constant. I left the code in there for
-# documentation and in case I could get it working later
+# This code contains the upper level states for how our NASA sample challenge
+# prototype chooses what to do and how it transitions from state to state.
+# Most of the logic once the state has been chosen is in the robot class
 
 import rospy
 import smach
@@ -28,16 +24,12 @@ class Seek(smach.State):
         self.result = ''
         # TODO: Replace this timeout with one that depends on distance
         # Time left (s) when SEEK will give up and return
-        # self.SEEK_TIMEOUT = 2 * 60.0
-
-        # testing testing
-        # Remove this line and uncomment above line once demoed
-        self.SEEK_TIMEOUT = 9.8 * 60.0
+        self.SEEK_TIMEOUT = 2 * 60.0
 
     def execute(self, userdata):
         global challenger
         rospy.loginfo('Executing state SEEK')
-        r = rospy.Rate(5)
+        r = rospy.Rate(1)
 
         while not rospy.is_shutdown():
             if len(challenger.unclaimed_samples) > 0:
@@ -47,8 +39,7 @@ class Seek(smach.State):
                 self.result = 'timeout'
                 break
             else:
-                # TODO: Write SEEK logic
-                rospy.loginfo("This is where the robot should seek!")
+                challenger.drive_robot(challenger.seek())
                 r.sleep()
         rospy.loginfo("Returning from %s with result %s",
                       self.__class__.__name__, self.result)
@@ -77,8 +68,7 @@ class Grab(smach.State):
                 self.result = 'timeout'
                 break
             else:
-                # TODO: Write GRAB logic
-                rospy.loginfo("This is where the robot should grab samples!")
+                challenger.drive_robot(challenger.grab())
                 r.sleep()
         rospy.loginfo("Returning from %s with result %s",
                       self.__class__.__name__, self.result)      

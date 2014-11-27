@@ -35,3 +35,10 @@ def point_difference(point1, point2):
     delta_point.y = point2.y - point1.y
     delta_point.z = angle_difference(point1.z, point2.z)
     return delta_point
+
+def pt_to_pt_distance(point1, point2):
+    """
+    Returns, as a float, the 2D distance between two points
+    """
+    diff = point_difference(point1, point2)
+    return pow(pow(diff.x, 2) + pow(diff.y, 2), 0.5)

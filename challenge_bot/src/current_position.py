@@ -1,9 +1,5 @@
 #!/usr/bin/env python
 
-# THERE'S A PROBLEM WITH THE CODE
-# If you drive the robot forward, rotate the robot 90 degrees, and reset the
-# position to the correct one, it tracks (x, y) incorrectly after that
-
 # Emily Wang, Eric Schneider
 # Computational Robotics, Fall 2014, Olin College, taught by Paul Ruvolo
 # This code using a combination of odometry and human-provided data to publish
