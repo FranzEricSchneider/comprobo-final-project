@@ -15,13 +15,13 @@ from challenge_msgs.srv import SamplePoint, SamplePointRequest
 class SampleMapper():
     def __init__(self):
         rospy.init_node("sample_mapper")
-        rospy.loginfo("sample mapper node setup!")
+        rospy.loginfo("sample mapper node set up!")
 
         rospy.wait_for_service("add_sample_pos_to_map")
         self.add_sample_pos_service = rospy.ServiceProxy("add_sample_pos_to_map", SamplePoint)
         self.fiducials = ['a', 'b', 'c', 'd', 'g', 'f']
         
-        self.tf_listener = tf.TransformListener()     
+        self.tf_listener = tf.TransformListener()
         self.pos_sub = rospy.Subscriber('/current_pos', Point, self.sample_pos_cb)
 
         rate = rospy.Rate(10.0)
