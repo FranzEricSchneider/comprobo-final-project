@@ -9,6 +9,8 @@
   <node name="current_position" pkg="challenge_bot" type="current_position.py"/>
   <!-- Takes the current position and writes it to the map -->
   <node name="position_mapper" pkg="challenge_bot" type="pos_mapper.py"/>
+  <!-- Updates the map with sample positions when a sample is in the camera view -->
+  <node name="sample_mapper" pkg="challenge_bot" type="sample_mapper.py"/>
   <!-- Publishes a vector that points way from obstacles -->
   <!-- <node name="obstacle_avoid" pkg="challenge_bot" type="obstacle_avoid.py"/> -->
   <!-- Publishes the location of samples -->
