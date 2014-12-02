@@ -14,7 +14,7 @@
   <!-- Publishes a vector that points way from obstacles -->
   <!-- <node name="obstacle_avoid" pkg="challenge_bot" type="obstacle_avoid.py"/> -->
   <!-- Publishes the location of samples -->
-  <!-- <include file="$(find challenge_bot)/launch/publish_sample_tf.launch"/> -->
+  <include file="$(find challenge_bot)/launch/publish_sample_tf.launch"/>
 
   <!-- Creates a Robot object and direct the actions of the robot -->
   <!-- <node name="state_machine" pkg="challenge_bot" type="state_machine.py"/> -->

@@ -199,7 +199,11 @@ class ChallengeBot():
 
         if not sample_seen:
             # TODO: Implement avoid_point here
-            wp = wp_around_sample(goal)
+            # TODO: test this! if it's not seen, then it'll drive to 
+            # a point perpendicular to the sample to check... and if it still
+            # can't find it, then maybe it's a bad sample map point 
+            # and should be cleared.
+            wp = self.wp_around_sample(goal)
             rospy.loginfo('Driving around sample to waypoint \n%s', str(wp))
             self.drive_waypoints([wp])
             rospy.loginfo('Finished driving around the waypoint')
@@ -207,7 +211,7 @@ class ChallengeBot():
         print goal
         print self.SAMPLE_IDS[goal]
 
-        # If waypoint is visible [Talk to Emily about how to determine this]
+        # If waypoint is visible
             # Drive to goal perpindicular to sample, 1m away
         # Else (waypoint is not visible)
             # Drive to goal 90 degrees around the circle from where we are
