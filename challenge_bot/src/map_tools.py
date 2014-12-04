@@ -17,13 +17,13 @@ def get_known_samples(field_map):
     """
     found_samples = {}
     sample_val = 20
-    while not rospy.is_shutdown():
-        point = avg_point_of_value(field_map, sample_val)
+    for i in range(6):
+        point = avg_point_of_value(field_map, sample_val + i)
         if point == -1:
-            return found_samples
+            pass
         else:
-            found_samples[sample_val] = deepcopy(point)
-        sample_val += 1
+            found_samples[sample_val + i] = deepcopy(point)
+    return found_samples
 
 def avg_point_of_value(field_map, value):
     """

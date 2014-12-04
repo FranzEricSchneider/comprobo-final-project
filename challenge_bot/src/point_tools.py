@@ -1,7 +1,13 @@
 #!/usr/bin/env python
 from rospy import logerr
-from geometry_msgs.msg import Point
+from geometry_msgs.msg import Point, Vector3
 from vector_tools import add_angles, angle_difference
+
+def vector_to_point(vector3):
+    return Point(vector3.x, vector3.y, vector3.z)
+
+def point_to_vector(point):
+    return Vector3(point.x, point.y, point.z)
 
 def array_to_point(np_array):
 	"""
