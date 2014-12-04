@@ -10,6 +10,7 @@ import rospy
 from nav_msgs.msg import MapMetaData, OccupancyGrid
 from challenge_msgs.srv import PointRequest, PointRequestResponse
 from challenge_msgs.srv import SamplePoint, SamplePointResponse
+from challenge_msgs.srv import OccupancyValue, OccupancyValueResponse
 
 class MapPublisher():
     def __init__(self):
@@ -22,11 +23,17 @@ class MapPublisher():
         # has also been a helpful example/reference for the map things.
         self.map = OccupancyGrid()
 
+        ### services! 
         # set up the service for updating the map with positions the robot has been 
         pos_s = rospy.Service('add_pos_to_map', PointRequest, self.handle_pos_service)
 
         # set up the service for updating the map with sample locations
         sample_s = rospy.Service('add_sample_pos_to_map', SamplePoint, self.handle_sample_pos_service)
+
+        # set up the service to remove points of a specific occupancy value on the map
+        remove_specific_occupancy_val_s = rospy.Service('remove_specific_occupancy_val', OccupancyValue, self.handle_remove_specific_occupancy_val)
+
+        ### end of starting up services!
 
         # header stuff
         self.map.header.seq = 0 # increment this every time we publish the map
@@ -98,6 +105,17 @@ class MapPublisher():
         rospy.loginfo("Sample %s ahoy at (%f, %f)!", sample_f_str, sample_x, sample_y)
         self.publish_map()
         return SamplePointResponse()
+
+    def handle_remove_specific_occupancy_val(self, req):
+        return self.remove_specific_occupancy_val_cb(req.occupancy_value)
+
+    def remove_specific_occupancy_val_cb(self, occupancy_value):
+        # find squares with occupancy_value and set them to 0 on the map 
+        # ex. clearing anything with sample a's value on the map
+        for i in range(len(self.map.data)):
+            if self.map.data[i] == occupancy_value:
+                self.map.data[i] = 0
+        return OccupancyValueResponse()
 
     def mark_ramp(self, ramp_x, ramp_y):
         # encode where the ramp is with RAMP_OCCUPANCY_VAL

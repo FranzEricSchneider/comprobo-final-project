@@ -30,7 +30,15 @@ fiducial: 'f'"
 +x forward
 +y left
 
-helper funcs for map_publisher:
-remove all samples
-remove a specific occupancy val
-remove a specific samples
+
+tasks!
+
+### helper funcs for map_publisher:
+* remove all samples
+* remove a specific occupancy val
+* remove a specific samples
+
+### testing grab
+* work on the state machine branch
+* does it see the fiducial??
+* test the 'if not sample_seen' section

@@ -54,6 +54,7 @@ add_service_files(
   FILES
   PointRequest.srv
   SamplePoint.srv
+  OccupancyValue.srv
 )
 
 ## Generate actions in the 'action' folder
