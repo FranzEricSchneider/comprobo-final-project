@@ -9,9 +9,9 @@
 import numpy as np
 from copy import deepcopy
 import rospy
+import tf
 from nav_msgs.msg import Odometry
 from geometry_msgs.msg import Point
-from tf.transformations import euler_from_quaternion
 from challenge_msgs.srv import PointRequest, PointRequestResponse
 from vector_tools import add_angles, angle_difference
 from point_tools import add_points, point_difference, array_to_point
@@ -32,6 +32,7 @@ class CurrentPosition():
         self.M = np.zeros((3, 3), dtype=np.float)
         self.calculate_correction_matrix()
 
+        self.br = tf.TransformBroadcaster()
         self.current_pos_server()
 
     def odom_cb(self, odom):
@@ -42,7 +43,13 @@ class CurrentPosition():
         self.extract_raw_position_from_odom(odom)
         delta_odom = self.get_odom_change(self.raw_position_at_update,
                                           self.raw_position)
+        
         self.pos_pub.publish(self.calculate_current_position(delta_odom))
+        self.br.sendTransform((self.position.x, self.position.y, 0),
+                     tf.transformations.quaternion_from_euler(0, 0, self.position.z),
+                     rospy.Time.now(),
+                     "challenge_bot",
+                     "world")
 
     def extract_raw_position_from_odom(self, odom):
         """
@@ -54,7 +61,7 @@ class CurrentPosition():
         self.raw_position.y = pose.position.y
         rotation = (pose.orientation.x, pose.orientation.y,
                     pose.orientation.z, pose.orientation.w)
-        self.raw_position.z = euler_from_quaternion(rotation)[2]
+        self.raw_position.z = tf.transformations.euler_from_quaternion(rotation)[2]
 
     def get_odom_change(self, base_point, changed_point):
         """
