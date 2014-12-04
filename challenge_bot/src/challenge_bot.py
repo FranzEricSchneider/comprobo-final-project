@@ -83,7 +83,7 @@ class ChallengeBot():
         """
         Drives a given angle, (CCW, CW) is (+/-). In radians
         """
-        angle_cmd = Twist(angular=Vector3(0, 0, copysign(1, angle)))
+        angle_cmd = Twist(angular=Vector3(0, 0, copysign(1.05, angle)))
         self.vector_pub.publish(angle_cmd)
         rospy.sleep(abs(angle))
         self.stop()
@@ -94,7 +94,7 @@ class ChallengeBot():
         the obstacle avoid vector on top of that, if asked to
         """
         combined_vector = vector_add(cmd_vector, self.obs_avoid_vector)
-        self.display_vectors(cmd_vector, combined_vector)        
+        self.display_vectors(cmd_vector, combined_vector)
 
         if vector_mag(self.obs_avoid_vector) < self.AVOID_CMD_CUTOFF\
            or not avoid_obs:
@@ -178,7 +178,7 @@ class ChallengeBot():
         v = Vector3(random(), random()*2 - 1, 0)
         self.last_seek_cmd = create_unit_vector(vector_add(v,
                                                            self.last_seek_cmd))
-        return self.last_seek_cm
+        return self.last_seek_cmd
 
     def grab(self):
         # TODO: Flesh this case out
