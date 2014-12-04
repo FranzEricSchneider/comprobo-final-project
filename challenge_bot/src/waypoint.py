@@ -28,5 +28,4 @@ class Waypoint():
         dy = self.point.y - robot_point.y
         abs_angle = vector_ang(Vector3(dx, dy, 0))
         rel_angle = add_angles(abs_angle, -robot_point.z)
-        rospy.loginfo('Creating a vector pointing %f rad, relative', rel_angle)
         return create_angled_vector(rel_angle)
