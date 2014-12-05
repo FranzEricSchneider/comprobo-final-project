@@ -106,7 +106,7 @@ class ChallengeBot():
         the obstacle avoid vector on top of that, if asked to
         """
         combined_vector = vector_add(cmd_vector, self.obs_avoid_vector)
-        self.display_vectors(cmd_vector, combined_vector)
+        self.display_vectors(deepcopy(cmd_vector), deepcopy(combined_vector))
 
         if vector_mag(self.obs_avoid_vector) < self.AVOID_CMD_CUTOFF\
            or not avoid_obs:
@@ -149,7 +149,7 @@ class ChallengeBot():
         self.vector_pub.publish(cmd)
 
     def drive_waypoints(self, waypoints):
-        r = rospy.Rate(15)
+        r = rospy.Rate(50)
         for wp in waypoints:
             while not wp.is_complete(self.current_pos)\
                   and not rospy.is_shutdown():
