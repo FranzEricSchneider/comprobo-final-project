@@ -105,8 +105,10 @@ class ChallengeBot():
         Takes in a Vector3 direction in which to drive the robot, then layers
         the obstacle avoid vector on top of that, if asked to
         """
+        print cmd_vector
+        rospy.sleep(2.0)
         combined_vector = vector_add(cmd_vector, self.obs_avoid_vector)
-        self.display_vectors(cmd_vector, combined_vector)
+        self.display_vectors(deepcopy(cmd_vector), deepcopy(combined_vector))
 
         if vector_mag(self.obs_avoid_vector) < self.AVOID_CMD_CUTOFF\
            or not avoid_obs:

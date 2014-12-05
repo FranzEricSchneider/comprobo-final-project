@@ -38,7 +38,8 @@ class RVIZVector():
         marker.pose.position.z = 0.0
         
         # Magnitude
-        marker.scale.x = max(magnitude, 0.01);
+        magnitude = max(magnitude, 0.01)
+        marker.scale.x = magnitude
         marker.scale.y = min(0.04, magnitude);
         marker.scale.z = min(0.04, magnitude);
 
