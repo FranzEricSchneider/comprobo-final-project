@@ -17,9 +17,9 @@ class ObstacleAvoid():
         self.UPPER_SCAN_BOUND = 5.0
         # If an obstacle is more than OBS_SENSITIVITY meters away, this
         # obstacle avoid code will ignore it
-        self.OBS_SENSITIVITY = .5
+        self.OBS_SENSITIVITY = 0.75
         # Scalar strength that tunes obstacle avoidance
-        self.AVOID_STRENGTH = 1
+        self.AVOID_STRENGTH = 2
 
         self.valid_points = {}
         self.last_scan = LaserScan()
