@@ -105,8 +105,6 @@ class ChallengeBot():
         Takes in a Vector3 direction in which to drive the robot, then layers
         the obstacle avoid vector on top of that, if asked to
         """
-        print cmd_vector
-        rospy.sleep(2.0)
         combined_vector = vector_add(cmd_vector, self.obs_avoid_vector)
         self.display_vectors(deepcopy(cmd_vector), deepcopy(combined_vector))
 
@@ -151,7 +149,7 @@ class ChallengeBot():
         self.vector_pub.publish(cmd)
 
     def drive_waypoints(self, waypoints):
-        r = rospy.Rate(15)
+        r = rospy.Rate(50)
         for wp in waypoints:
             while not wp.is_complete(self.current_pos)\
                   and not rospy.is_shutdown():
