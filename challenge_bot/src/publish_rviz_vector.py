@@ -29,7 +29,7 @@ class RVIZVector():
             self.color = ColorRGBA(0.5, 0., 0.5, 1.)
 
     def publish_marker(self, current_pos, vector):
-        angle = vector_ang(vector)
+        angle = vector_ang(vector) + current_pos.z
         magnitude = vector_mag(vector)
         marker = self.populate_marker()
 
