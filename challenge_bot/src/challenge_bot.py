@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+
 # Emily Wang, Eric Schneider
 # Computational Robotics, Fall 2014, Olin College, taught by Paul Ruvolo
 # This code is the main class code for a robot that is prototyping the NASA
@@ -14,6 +15,7 @@ from random import random
 
 from waypoint import Waypoint
 from map_tools import *
+from publish_rviz_vector import *
 from point_tools import *
 from vector_tools import *
 
@@ -23,9 +25,9 @@ class ChallengeBot():
         rospy.init_node('ChallengeBot')
 
         # Sets the max/min velocity (m/s) and linear velocity (rad/s)
-        self.MAX_LINEAR = 0.8
+        self.MAX_LINEAR = 0.1
         self.MIN_LINEAR = 0.0
-        self.MAX_ANGULAR = .5
+        self.MAX_ANGULAR = .3
         self.MIN_ANGULAR = 0.0
 
         # Cutoff magnitudes below which no drive command will be published
@@ -46,6 +48,10 @@ class ChallengeBot():
         self.pos_sub = rospy.Subscriber('/current_pos', Point, self.pos_cb)
         self.map = OccupancyGrid()
         self.map_sub = rospy.Subscriber('/map', OccupancyGrid, self.map_cb)
+
+        self.display_obstacle_avoid = RVIZVector("ObstacleAvoid")
+        self.display_command_vector = RVIZVector("CommandedValue")
+        self.display_combined_vector = RVIZVector("CombinedValue")
 
         self.unclaimed_samples = {}
         self.claimed_samples = {}
@@ -99,8 +105,12 @@ class ChallengeBot():
         Takes in a Vector3 direction in which to drive the robot, then layers
         the obstacle avoid vector on top of that, if asked to
         """
+        combined_vector = vector_add(cmd_vector, self.obs_avoid_vector)
+        self.display_vectors(cmd_vector, combined_vector)
+
         if vector_mag(self.obs_avoid_vector) < self.AVOID_CMD_CUTOFF\
            or not avoid_obs:
+
             if vector_mag(cmd_vector) > self.AVOID_CMD_CUTOFF:
                 self.drive(cmd_vector)
             else:
@@ -109,7 +119,7 @@ class ChallengeBot():
             if vector_mag(cmd_vector) < self.AVOID_CMD_CUTOFF:
                 self.drive(self.obs_avoid_vector)
             else:
-                self.drive(vector_add(cmd_vector, self.obs_avoid_vector))
+                self.drive(combined_vector)
 
     def drive(self, vector):
         """
@@ -144,8 +154,6 @@ class ChallengeBot():
             while not wp.is_complete(self.current_pos)\
                   and not rospy.is_shutdown():
                 v = wp.vector_to_wp(self.current_pos)
-                rospy.loginfo('------ Publishing vector \n%s to point \n%s',
-                              str(v), str(wp.point))
                 self.drive_robot(wp.vector_to_wp(self.current_pos))
                 r.sleep()
         self.stop()
@@ -163,6 +171,17 @@ class ChallengeBot():
         for key in mapped_samples.keys():
             if not key in self.claimed_samples.keys():
                 self.unclaimed_samples[key] = mapped_samples[key]
+
+    def display_vectors(self, cmd, combine):
+        """
+        Uses the RVIZVector class to print a drive vector to RVIZ
+        """
+        self.display_obstacle_avoid.publish_marker(self.current_pos,
+                                                   self.obs_avoid_vector)
+        self.display_command_vector.publish_marker(self.current_pos,
+                                                   cmd)
+        self.display_combined_vector.publish_marker(self.current_pos,
+                                                    combine)
 
     def seek(self):
         # TODO: Make smarter code that checks the map, finds the direction to

@@ -6,6 +6,7 @@ from math import sin, cos, pi
 from sensor_msgs.msg import LaserScan
 from geometry_msgs.msg import Vector3
 from vector_tools import vector_add, vector_multiply
+from tf.transformations import quaternion_from_euler
 
 class ObstacleAvoid():
     def __init__(self):
@@ -16,9 +17,9 @@ class ObstacleAvoid():
         self.UPPER_SCAN_BOUND = 5.0
         # If an obstacle is more than OBS_SENSITIVITY meters away, this
         # obstacle avoid code will ignore it
-        self.OBS_SENSITIVITY = 1.0
+        self.OBS_SENSITIVITY = .5
         # Scalar strength that tunes obstacle avoidance
-        self.AVOID_STRENGTH = 2
+        self.AVOID_STRENGTH = 1
 
         self.valid_points = {}
         self.last_scan = LaserScan()

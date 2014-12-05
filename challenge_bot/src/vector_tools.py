@@ -22,7 +22,7 @@ def vector_multiply(v1, scalar):
     return v
 
 def vector_mag(v):
-    mag = pow(pow(v.x, 2) + pow(v.y, 2) + pow(v.z, 2), 0.5)
+    mag = pow(pow(v.x, 2) + pow(v.y, 2), 0.5)
     return mag
 
 # Angle assumes 2D vector, returns in radians

@@ -3,6 +3,12 @@
   <node pkg="tf" type="static_transform_publisher" name="world_to_map" 
     args="0 0 0 0 0 0 world map 1" />
 
+  <node pkg="tf" type="static_transform_publisher" name="world_to_odom" 
+    args="0 0 0 0 0 0 world odom 1" />
+
+  <node pkg="tf" type="static_transform_publisher" name="base_link_to_oapose" 
+    args="0 0 0 0 0 0 challenge_bot obstacle_avoidance_pose 1" />
+
   <!-- Publishes and updates the map -->
   <node name="map_publisher" pkg="challenge_bot" type="map_publisher.py"/>
   <!-- Publishes current location of the robot -->
@@ -12,7 +18,7 @@
   <!-- Updates the map with sample positions when a sample is in the camera view -->
   <node name="sample_mapper" pkg="challenge_bot" type="sample_mapper.py"/>
   <!-- Publishes a vector that points way from obstacles -->
-  <!-- <node name="obstacle_avoid" pkg="challenge_bot" type="obstacle_avoid.py"/> -->
+  <node name="obstacle_avoid" pkg="challenge_bot" type="obstacle_avoid.py"/>
   <!-- Publishes the location of samples -->
   <include file="$(find challenge_bot)/launch/publish_sample_tf.launch"/>
 
