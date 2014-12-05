@@ -23,9 +23,9 @@ class ChallengeBot():
         rospy.init_node('ChallengeBot')
 
         # Sets the max/min velocity (m/s) and linear velocity (rad/s)
-        self.MAX_LINEAR = 0.25
+        self.MAX_LINEAR = 0.8
         self.MIN_LINEAR = 0.0
-        self.MAX_ANGULAR = 1.0
+        self.MAX_ANGULAR = .5
         self.MIN_ANGULAR = 0.0
 
         # Cutoff magnitudes below which no drive command will be published
@@ -175,7 +175,7 @@ class ChallengeBot():
     def grab(self):
         # TODO: Flesh this case out
         goal = self.closest_sample()
-        wp = Waypoint(self.unclaimed_samples[goal], 1.5)
+        wp = Waypoint(self.unclaimed_samples[goal], .5)
         rospy.loginfo('Driving towards the nearest sample, %d, at \n%s',
                       goal, str(self.unclaimed_samples[goal]))
         self.drive_waypoints([wp])

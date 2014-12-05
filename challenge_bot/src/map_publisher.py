@@ -56,7 +56,6 @@ class MapPublisher():
         # occupancy vals for ramps, where we've been, and where the samples are
         self.RAMP_OCCUPANCY_VAL = 30
         self.HAVEBEEN_OCCUPANCY_VAL = 10
-        # self.SAMPLE_OCCUPANCY_VAL = 20
         self.SAMPLE_OCCUPANCY_VALS = {'a':20, 'b':21, 'c':22, 'd':23, 'g':24, 'f':25}
 
         # publisher/subscriber stuff
