@@ -98,6 +98,8 @@ class ChallengeBot():
         """
         delta_point = point_difference(self.current_pos, point)
         goal_angle = vector_ang(point_to_vector(delta_point))
+        print "goal angle: ", goal_angle
+        print "angle difference: ", angle_difference(self.current_pos.z, goal_angle)
         self.drive_angle(angle_difference(self.current_pos.z, goal_angle))
 
     def drive_robot(self, cmd_vector, avoid_obs=True):
@@ -194,7 +196,7 @@ class ChallengeBot():
     def grab(self):
         # TODO: Flesh this case out
         goal = self.closest_sample()
-        wp = Waypoint(self.unclaimed_samples[goal], .5)
+        wp = Waypoint(self.unclaimed_samples[goal], 1)
         rospy.loginfo('Driving towards the nearest sample, %d, at \n%s',
                       goal, str(self.unclaimed_samples[goal]))
         self.drive_waypoints([wp])
@@ -206,10 +208,10 @@ class ChallengeBot():
                       self.SAMPLE_IDS[goal])
         for i in range(10):
             try:
+                rospy.sleep(.5)
                 sample_tf = self.tf_listener.lookupTransform('camera_frame',
                                                              self.SAMPLE_IDS[goal],
                                                              rospy.Time(0))
-                print sample_tf
                 rospy.loginfo("SUCCESS -- Saw the sample on cycle %d", i)
                 sample_seen = True
                 break
@@ -225,10 +227,8 @@ class ChallengeBot():
             wp = self.wp_around_sample(goal)
             rospy.loginfo('Driving around sample to waypoint \n%s', str(wp))
             self.drive_waypoints([wp])
+            self.point_robot_at_target(wp.point)
             rospy.loginfo('Finished driving around the waypoint')
-
-        print goal
-        print self.SAMPLE_IDS[goal]
 
         # If waypoint is visible
             # Drive to goal perpindicular to sample, 1m away
@@ -273,5 +273,5 @@ class ChallengeBot():
                                                      pi / 4),
                                           pow(2 * pow(vector_mag(offset_vector), 2), 0.5))
         return Waypoint(add_points(self.current_pos,
-                                     vector_to_point(new_vector)),
-                          RADIUS)
+                                   vector_to_point(new_vector)),
+                                   RADIUS)
