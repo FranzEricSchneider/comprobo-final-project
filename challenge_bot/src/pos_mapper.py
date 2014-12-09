@@ -17,8 +17,10 @@ class PositionMapper():
         """
         Grabs incoming /current_pos Point data and sends it to the map
         """
-        rospy.loginfo("Got a position!")
-        self.map_pos_service(PointRequestRequest(msg))
+        try:
+            self.map_pos_service(PointRequestRequest(msg))
+        except Exception, e:
+            print e
 
 
 if __name__ == '__main__':

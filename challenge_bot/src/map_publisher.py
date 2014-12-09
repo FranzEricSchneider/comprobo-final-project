@@ -93,7 +93,7 @@ class MapPublisher():
         if (x < self.map.info.width and x >= 0) and (y < self.map.info.height and y >= 0):
             self.map.data[self.row_major_idx(x, y)] = occupancy_val
         else: # you're out of bounds 
-            rospy.logwarn("Your point, (%d px, %d px), is out of bounds!", x, y)
+            rospy.logwarn("Your point, (%d px, %d px), is out of bounds! Offending occupancy_val: ", x, y, occupancy_val)
 
     def handle_pos_service(self, req):
         return self.pos_cb(req.point.x, req.point.y)

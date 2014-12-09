@@ -97,6 +97,9 @@ class ChallengeBot():
         Takes a Point on the map and tries to point the robot at it
         """
         delta_point = point_difference(self.current_pos, point)
+        print "current pos ",self.current_pos
+        print "delta point ", delta_point
+        print "the point ", point
         goal_angle = vector_ang(point_to_vector(delta_point))
         print "goal angle: ", goal_angle
         print "angle difference: ", angle_difference(self.current_pos.z, goal_angle)
@@ -220,13 +223,10 @@ class ChallengeBot():
 
         if not sample_seen:
             # TODO: Implement avoid_point here
-            # TODO: test this! if it's not seen, then it'll drive to 
-            # a point perpendicular to the sample to check... and if it still
-            # can't find it, then maybe it's a bad sample map point 
-            # and should be cleared.
             wp = self.wp_around_sample(goal)
             rospy.loginfo('Driving around sample to waypoint \n%s', str(wp))
             self.drive_waypoints([wp])
+            print "Pointing robot at waypoint ", wp
             self.point_robot_at_target(wp.point)
             rospy.loginfo('Finished driving around the waypoint')
 
@@ -257,7 +257,6 @@ class ChallengeBot():
                 min_distance = diff
         return closest_key
 
-    # TODO: This is untested
     def wp_around_sample(self, goal_sample):
         """
         Creates a waypoint that is pi/4 radians around the sample from where

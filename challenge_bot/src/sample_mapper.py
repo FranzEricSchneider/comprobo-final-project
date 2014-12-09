@@ -19,8 +19,13 @@ class SampleMapper():
 
         rospy.wait_for_service("add_sample_pos_to_map")
         self.add_sample_pos_service = rospy.ServiceProxy("add_sample_pos_to_map", SamplePoint)
-        self.fiducials = ['a', 'b', 'c', 'd', 'g', 'f']
-        
+        self.fiducials = {'a': None, 
+                          'b': None, 
+                          'c': None, 
+                          'd': None, 
+                          'g': None, 
+                          'f': None}
+
         self.tf_listener = tf.TransformListener()
         self.pos_sub = rospy.Subscriber('/current_pos', Point, self.sample_pos_cb)
 
@@ -43,15 +48,18 @@ class SampleMapper():
             fiducial_pos.y -= trans[0]
             fiducial_pos.z += trans[1]
 
-            # calls the service to update the map
-            rospy.loginfo("Putting the sample %s's position on the map! (sample_lookupTransform)", f_str)
-            sp = SamplePointRequest(fiducial_pos, f_str)
-            self.add_sample_pos_service(sp)
+            # add the fiducial to the map if it's not the most recent value
+            if self.fiducials[f_str] != trans: # to prevent fiducial ghosting!! (i.e. last tf value will linger unless you check)
+                # calls the service to update the map
+                self.fiducials[f_str] = trans
+                rospy.logdebug("Putting the sample %s's position on the map! (sample_lookupTransform)", f_str)
+                sp = SamplePointRequest(fiducial_pos, f_str)
+                self.add_sample_pos_service(sp)
         except:
-            rospy.loginfo("You probably can't see %s in the camera frame. (sample_lookupTransform)", f_str)
+            rospy.logdebug("You probably can't see %s in the camera frame. (sample_lookupTransform)", f_str)
 
     def sample_pos_cb(self, msg):
-        for f in self.fiducials:
+        for f in self.fiducials.keys():
             self.sample_lookupTransform(f, msg)
 
 if __name__ == '__main__':
