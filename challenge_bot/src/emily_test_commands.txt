@@ -55,10 +55,11 @@ rosservice call /reset_pos "point:
   x: 0.0
   y: 0.0
   z: 0.0" 
+
 rosservice call add_sample_pos_to_map "point:
   x: 2.1
   y: 0.0
   z: 0.0  
-fiducial: 'f'"
+fiducial: 'd'"
 
 
