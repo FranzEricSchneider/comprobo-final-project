@@ -1,0 +1,3 @@
+# message for remove points of a particular occupancy value so they're no longer on the map
+int64 occupancy_value
+---

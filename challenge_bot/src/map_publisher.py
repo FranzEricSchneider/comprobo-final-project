@@ -11,6 +11,7 @@ from nav_msgs.msg import MapMetaData, OccupancyGrid
 from std_srvs.srv import Empty
 from challenge_msgs.srv import PointRequest, PointRequestResponse
 from challenge_msgs.srv import SamplePoint, SamplePointResponse
+from challenge_msgs.srv import OccupancyValue, OccupancyValueResponse
 
 class MapPublisher():
     def __init__(self):
@@ -23,11 +24,18 @@ class MapPublisher():
         # has also been a helpful example/reference for the map things.
         self.map = OccupancyGrid()
 
+        ### services! 
         # set up the service for updating the map with positions the robot has been 
         pos_s = rospy.Service('add_pos_to_map', PointRequest, self.handle_pos_service)
 
         # set up the service for updating the map with sample locations
         sample_s = rospy.Service('add_sample_pos_to_map', SamplePoint, self.handle_sample_pos_service)
+
+        # set up the service for clearing the map
+        clear_map_s = rospy.Service('clear_map', Empty, self.handle_clear_map)
+
+        # set up the service to remove points of a specific occupancy value on the map
+        remove_specific_occupancy_val_s = rospy.Service('remove_specific_occupancy_val', OccupancyValue, self.handle_remove_specific_occupancy_val)
 
         # set up the service for updating the map with sample locations
         print_s = rospy.Service('print_all_map_values', Empty, self.print_all_values)
@@ -58,7 +66,10 @@ class MapPublisher():
         # rospy.Subscriber("sample_finder", subscribertype, somecallback, queue_size=1)
 
         # TODO: use the correct value for the ramp position
-        self.mark_ramp(1, 0)
+        self.RAMP_X = 1
+        self.RAMP_Y = 0
+
+        self.mark_ramp(self.RAMP_X, self.RAMP_Y)
 
     def publish_map(self):
         # handy helper function to call whenever you want to update the map
@@ -81,7 +92,7 @@ class MapPublisher():
         if (x < self.map.info.width and x >= 0) and (y < self.map.info.height and y >= 0):
             self.map.data[self.row_major_idx(x, y)] = occupancy_val
         else: # you're out of bounds 
-            rospy.logwarn("Your point, (%d px, %d px), is out of bounds!", x, y)
+            rospy.logwarn("Your point, (%d px, %d px), is out of bounds! Offending occupancy_val: ", x, y, occupancy_val)
 
     def handle_pos_service(self, req):
         return self.pos_cb(req.point.x, req.point.y)
@@ -108,6 +119,25 @@ class MapPublisher():
         rospy.loginfo("Sample %s ahoy at (%f, %f)!", sample_f_str, sample_x, sample_y)
         self.publish_map()
         return SamplePointResponse()
+
+    def handle_remove_specific_occupancy_val(self, req):
+        return self.remove_specific_occupancy_val_cb(req.occupancy_value)
+
+    def remove_specific_occupancy_val_cb(self, occupancy_value):
+        # find squares with occupancy_value and set them to 0 on the map 
+        # ex. clearing anything with sample a's value on the map
+        for i in range(len(self.map.data)):
+            if self.map.data[i] == occupancy_value:
+                self.map.data[i] = 0
+        return OccupancyValueResponse()
+
+    def handle_clear_map(self, req):
+        return self.clear_map_cb()
+
+    def clear_map_cb(self):
+        self.map.data = [0] * self.map.info.height * self.map.info.width # that row-major order
+        self.mark_ramp(self.RAMP_X, self.RAMP_Y) # mark the ramp again        
+        return []
 
     def mark_ramp(self, ramp_x, ramp_y):
         """

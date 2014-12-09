@@ -97,7 +97,12 @@ class ChallengeBot():
         Takes a Point on the map and tries to point the robot at it
         """
         delta_point = point_difference(self.current_pos, point)
+        print "current pos ",self.current_pos
+        print "delta point ", delta_point
+        print "the point ", point
         goal_angle = vector_ang(point_to_vector(delta_point))
+        print "goal angle: ", goal_angle
+        print "angle difference: ", angle_difference(self.current_pos.z, goal_angle)
         self.drive_angle(angle_difference(self.current_pos.z, goal_angle))
 
     def drive_robot(self, cmd_vector, avoid_obs=True):
@@ -194,7 +199,7 @@ class ChallengeBot():
     def grab(self):
         # TODO: Flesh this case out
         goal = self.closest_sample()
-        wp = Waypoint(self.unclaimed_samples[goal], 1.5)
+        wp = Waypoint(self.unclaimed_samples[goal], 1)
         rospy.loginfo('Driving towards the nearest sample, %d, at \n%s',
                       goal, str(self.unclaimed_samples[goal]))
         self.drive_waypoints([wp])
@@ -206,10 +211,10 @@ class ChallengeBot():
                       self.SAMPLE_IDS[goal])
         for i in range(10):
             try:
+                rospy.sleep(.5)
                 sample_tf = self.tf_listener.lookupTransform('camera_frame',
                                                              self.SAMPLE_IDS[goal],
                                                              rospy.Time(0))
-                print sample_tf
                 rospy.loginfo("SUCCESS -- Saw the sample on cycle %d", i)
                 sample_seen = True
                 break
@@ -218,15 +223,14 @@ class ChallengeBot():
 
         if not sample_seen:
             # TODO: Implement avoid_point here
-            wp = wp_around_sample(goal)
+            wp = self.wp_around_sample(goal)
             rospy.loginfo('Driving around sample to waypoint \n%s', str(wp))
             self.drive_waypoints([wp])
+            print "Pointing robot at waypoint ", wp
+            self.point_robot_at_target(wp.point)
             rospy.loginfo('Finished driving around the waypoint')
 
-        print goal
-        print self.SAMPLE_IDS[goal]
-
-        # If waypoint is visible [Talk to Emily about how to determine this]
+        # If waypoint is visible
             # Drive to goal perpindicular to sample, 1m away
         # Else (waypoint is not visible)
             # Drive to goal 90 degrees around the circle from where we are
@@ -253,7 +257,6 @@ class ChallengeBot():
                 min_distance = diff
         return closest_key
 
-    # TODO: This is untested
     def wp_around_sample(self, goal_sample):
         """
         Creates a waypoint that is pi/4 radians around the sample from where
@@ -269,5 +272,5 @@ class ChallengeBot():
                                                      pi / 4),
                                           pow(2 * pow(vector_mag(offset_vector), 2), 0.5))
         return Waypoint(add_points(self.current_pos,
-                                     vector_to_point(new_vector)),
-                          RADIUS)
+                                   vector_to_point(new_vector)),
+                                   RADIUS)
