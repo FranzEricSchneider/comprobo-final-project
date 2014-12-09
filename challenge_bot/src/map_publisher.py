@@ -116,7 +116,7 @@ class MapPublisher():
         fill in squares where sample is with the appropriate SAMPLE_OCCUPANCY_VAL for sample_f_str
         """
         self.set_value(sample_x, sample_y, self.SAMPLE_OCCUPANCY_VALS[sample_f_str]) 
-        rospy.loginfo("Sample %s ahoy at (%f, %f)!", sample_f_str, sample_x, sample_y)
+        # rospy.loginfo("Sample %s ahoy at (%f, %f)!", sample_f_str, sample_x, sample_y)
         self.publish_map()
         return SamplePointResponse()
 

@@ -10,7 +10,7 @@ import tf
 from geometry_msgs.msg import Twist, Vector3, Point
 from nav_msgs.msg import OccupancyGrid
 from copy import deepcopy
-from math import copysign, pi
+from math import copysign, pi, fabs, cos, sqrt, tan
 from random import random
 
 from waypoint import Waypoint
@@ -53,8 +53,11 @@ class ChallengeBot():
         self.display_command_vector = RVIZVector("CommandedValue")
         self.display_combined_vector = RVIZVector("CombinedValue")
 
+        # key: value
+        # fiducial's integer: point
         self.unclaimed_samples = {}
         self.claimed_samples = {}
+
         self.tf_listener = tf.TransformListener()
         self.SAMPLE_IDS = {20:'a', 21:'b', 22:'c', 23:'d', 24:'g', 25:'f'}
 
@@ -188,6 +191,45 @@ class ChallengeBot():
         self.display_combined_vector.publish_marker(self.current_pos,
                                                     combine)
 
+    def sample_seen_test(self):
+        """
+        Function for testing information for the "sample seen" case
+
+        Currently behaving badly with case 4 
+        """
+        goal = self.closest_sample()
+        sample_tf = self.tf_listener.lookupTransform('camera_frame',
+                                                     self.SAMPLE_IDS[goal],
+                                                     rospy.Time(0))
+
+        # how far away + how much turning needs to happen towards the sample
+        sample_trans = sample_tf[0]
+        sample_rot = sample_tf[1]
+        sample_rot = tf.transformations.euler_from_quaternion(sample_rot)
+        print "sample_trans! ", sample_trans
+        print "sample_rot!: ", sample_rot
+
+        # turn to a point perpendicular to sample
+        print (tan(abs(sample_rot[1])))*sample_trans[2] < abs(sample_trans[0]) 
+        if (tan(abs(sample_rot[1])))*sample_trans[2] < abs(sample_trans[0]):
+            sign = - copysign(1,sample_rot[1])
+        else:
+            sign = copysign(1,sample_rot[1])
+
+        angle_to_perp =  sign * pi/2 - sample_rot[1]
+        
+        self.drive_angle( angle_to_perp )
+        print "angle to a point perpendicular to sample: ", angle_to_perp
+
+        # drive to a point perpendicular to sample
+        distance_to_perp = sqrt(sample_trans[0]**2 + sample_trans[2]**2) * cos(angle_to_perp)
+        self.drive_distance( distance_to_perp )
+        print "distance to a point perpendicular to the sample: ", distance_to_perp
+
+        # turn towards sample (should be roughly pi/2)
+        self.drive_angle( - sign * pi/2 ) 
+        print "pi/2 turn!!"
+
     def seek(self):
         # TODO: Make smarter code that checks the map, finds the direction to
         # go, and adds a vector in that direction
@@ -209,6 +251,7 @@ class ChallengeBot():
         sample_seen = False
         rospy.loginfo('Beginning to look for the %s sample',
                       self.SAMPLE_IDS[goal])
+
         for i in range(10):
             try:
                 rospy.sleep(.5)
@@ -221,7 +264,22 @@ class ChallengeBot():
             except:
                 rospy.logwarn("Couldn't see sample: %d", i)
 
-        if not sample_seen:
+        if sample_seen: # drive over it!
+
+            sample_seen_test() is happening
+
+            # # use some sort of control to go towards the fiducial
+            # # another helper function
+
+            # # check the tf: at a certain distance the sample moves from unclaimed to claimed
+            # if dist_to_fid < .5 :
+            #     self.claimed_samples[key] = self.unclaimed_samples[key]                  
+            #     del self.unclaimed_samples[key]
+
+            # record when the fiducial goes out of view
+            # drive for that distance + 1/2 a meter 
+
+        elif not sample_seen:
             # TODO: Implement avoid_point here
             wp = self.wp_around_sample(goal)
             rospy.loginfo('Driving around sample to waypoint \n%s', str(wp))
@@ -231,7 +289,7 @@ class ChallengeBot():
             rospy.loginfo('Finished driving around the waypoint')
 
         # If waypoint is visible
-            # Drive to goal perpindicular to sample, 1m away
+            # Drive to goal perpendicular to sample, 1m away
         # Else (waypoint is not visible)
             # Drive to goal 90 degrees around the circle from where we are
         # Turn towards the sample
