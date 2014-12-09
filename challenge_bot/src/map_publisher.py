@@ -116,7 +116,7 @@ class MapPublisher():
         fill in squares where sample is with the appropriate SAMPLE_OCCUPANCY_VAL for sample_f_str
         """
         self.set_value(sample_x, sample_y, self.SAMPLE_OCCUPANCY_VALS[sample_f_str]) 
-        rospy.loginfo("Sample %s ahoy at (%f, %f)!", sample_f_str, sample_x, sample_y)
+        rospy.logdebug("Sample %s ahoy at (%f, %f)!", sample_f_str, sample_x, sample_y)
         self.publish_map()
         return SamplePointResponse()
 
@@ -152,9 +152,12 @@ class MapPublisher():
         for x in range(self.map.info.width):
             for y in range(self.map.info.height):
                 idx = self.row_major_idx(x, y)
-                if self.map.data[idx] > 0:
-                    x_meters = x * self.map.info.resolution + self.map.info.origin.position.x
-                    y_meters = y * self.map.info.resolution + self.map.info.origin.position.y
+                if self.map.data[idx] > 0 and \
+                   self.map.data[idx] != self.HAVEBEEN_OCCUPANCY_VAL:
+                    x_meters = x * self.map.info.resolution + \
+                               self.map.info.origin.position.x
+                    y_meters = y * self.map.info.resolution + \
+                               self.map.info.origin.position.y
                     print_string += "(%f, %f) has value %d\n" % (x_meters, y_meters,
                                                                  self.map.data[idx])
         rospy.loginfo(print_string)

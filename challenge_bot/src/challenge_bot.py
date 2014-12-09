@@ -97,12 +97,7 @@ class ChallengeBot():
         Takes a Point on the map and tries to point the robot at it
         """
         delta_point = point_difference(self.current_pos, point)
-        print "current pos ",self.current_pos
-        print "delta point ", delta_point
-        print "the point ", point
         goal_angle = vector_ang(point_to_vector(delta_point))
-        print "goal angle: ", goal_angle
-        print "angle difference: ", angle_difference(self.current_pos.z, goal_angle)
         self.drive_angle(angle_difference(self.current_pos.z, goal_angle))
 
     def drive_robot(self, cmd_vector, avoid_obs=True):
@@ -223,10 +218,9 @@ class ChallengeBot():
 
         if not sample_seen:
             # TODO: Implement avoid_point here
-            wp = self.wp_around_sample(goal)
+            reposition_wp = self.wp_around_sample(goal)
             rospy.loginfo('Driving around sample to waypoint \n%s', str(wp))
-            self.drive_waypoints([wp])
-            print "Pointing robot at waypoint ", wp
+            self.drive_waypoints([reposition_wp])
             self.point_robot_at_target(wp.point)
             rospy.loginfo('Finished driving around the waypoint')
 
