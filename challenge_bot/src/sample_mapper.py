@@ -9,8 +9,10 @@ import rospy
 import tf
 import point_tools
 import copy
-from geometry_msgs.msg import Point
+from math import sin, cos
+from geometry_msgs.msg import Point, Vector3
 from challenge_msgs.srv import SamplePoint, SamplePointRequest
+from vector_tools import *
 
 class SampleMapper():
     def __init__(self):
@@ -43,10 +45,17 @@ class SampleMapper():
             (trans, rot) = self.tf_listener.lookupTransform('camera_frame', f_str, rospy.Time(0))
 
             # add tf values to current_pos message values to get the fiducial position
+            # In the robot axes, the data comes in as (x_f, y_f, z_f) = (y_r, z_r, x_r)
+            # in meters where x_f is x_fiducial and x_r is x_robot
             fiducial_pos = copy.deepcopy(msg)
-            fiducial_pos.x += trans[2]
-            fiducial_pos.y -= trans[0]
-            fiducial_pos.z += trans[1]
+            magnitude = vector_mag(Vector3(trans[2] + 0.17, trans[0], 0.0))
+            local_angle = vector_ang(Vector3(trans[2] + 0.17, -trans[0], 0.0))
+            global_angle = local_angle + fiducial_pos.z
+            dx = cos(global_angle) * magnitude
+            dy = sin(global_angle) * magnitude
+            fiducial_pos.x += dx
+            fiducial_pos.y += dy
+            fiducial_pos.z = 0
 
             # add the fiducial to the map if it's not the most recent value
             if self.fiducials[f_str] != trans: # to prevent fiducial ghosting!! (i.e. last tf value will linger unless you check)
