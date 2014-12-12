@@ -18,6 +18,7 @@ from map_tools import *
 from publish_rviz_vector import *
 from point_tools import *
 from vector_tools import *
+from challenge_msgs.srv import SendBool
 
 
 class ChallengeBot():
@@ -61,12 +62,19 @@ class ChallengeBot():
         # Logic for the SEEK behavior
         self.last_seek_cmd = Vector3()
 
+        self.paused = False
+        pause_s = rospy.Service('/pause_robot', SendBool, self.set_pause)
+
     def stop(self):
         """
         Publishes empty vector to stop robot
         """
         cmd = Twist()
         self.vector_pub.publish(cmd)
+
+    def set_pause(self, req):
+        self.paused = req.value
+        return []
 
     def drive_distance(self, distance):
         """
@@ -108,18 +116,21 @@ class ChallengeBot():
         combined_vector = vector_add(cmd_vector, self.obs_avoid_vector)
         self.display_vectors(deepcopy(cmd_vector), deepcopy(combined_vector))
 
-        if vector_mag(self.obs_avoid_vector) < self.AVOID_CMD_CUTOFF\
-           or not avoid_obs:
-
-            if vector_mag(cmd_vector) > self.AVOID_CMD_CUTOFF:
-                self.drive(cmd_vector)
-            else:
-                self.stop()
+        if self.paused:
+            self.stop()
         else:
-            if vector_mag(cmd_vector) < self.AVOID_CMD_CUTOFF:
-                self.drive(self.obs_avoid_vector)
+            if vector_mag(self.obs_avoid_vector) < self.AVOID_CMD_CUTOFF\
+               or not avoid_obs:
+
+                if vector_mag(cmd_vector) > self.AVOID_CMD_CUTOFF:
+                    self.drive(cmd_vector)
+                else:
+                    self.stop()
             else:
-                self.drive(combined_vector)
+                if vector_mag(cmd_vector) < self.AVOID_CMD_CUTOFF:
+                    self.drive(self.obs_avoid_vector)
+                else:
+                    self.drive(combined_vector)
 
     def drive(self, vector):
         """
