@@ -18,6 +18,7 @@ from map_tools import *
 from publish_rviz_vector import *
 from point_tools import *
 from vector_tools import *
+from challenge_msgs.srv import SendBool
 
 
 class ChallengeBot():
@@ -61,12 +62,19 @@ class ChallengeBot():
         # Logic for the SEEK behavior
         self.last_seek_cmd = Vector3()
 
+        self.paused = False
+        pause_s = rospy.Service('/pause_robot', SendBool, self.set_pause)
+
     def stop(self):
         """
         Publishes empty vector to stop robot
         """
         cmd = Twist()
         self.vector_pub.publish(cmd)
+
+    def set_pause(self, req):
+        self.paused = req.value
+        return []
 
     def drive_distance(self, distance):
         """
@@ -146,7 +154,10 @@ class ChallengeBot():
         else:
             cmd.angular.z = ang / forced_turn_angle * self.MAX_ANGULAR
 
-        self.vector_pub.publish(cmd)
+        if self.paused:
+            self.vector_pub.publish(Twist())
+        else:
+            self.vector_pub.publish(cmd)
 
     def drive_waypoints(self, waypoints):
         r = rospy.Rate(50)
