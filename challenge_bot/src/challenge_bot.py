@@ -116,21 +116,18 @@ class ChallengeBot():
         combined_vector = vector_add(cmd_vector, self.obs_avoid_vector)
         self.display_vectors(deepcopy(cmd_vector), deepcopy(combined_vector))
 
-        if self.paused:
-            self.stop()
-        else:
-            if vector_mag(self.obs_avoid_vector) < self.AVOID_CMD_CUTOFF\
-               or not avoid_obs:
+        if vector_mag(self.obs_avoid_vector) < self.AVOID_CMD_CUTOFF\
+           or not avoid_obs:
 
-                if vector_mag(cmd_vector) > self.AVOID_CMD_CUTOFF:
-                    self.drive(cmd_vector)
-                else:
-                    self.stop()
+            if vector_mag(cmd_vector) > self.AVOID_CMD_CUTOFF:
+                self.drive(cmd_vector)
             else:
-                if vector_mag(cmd_vector) < self.AVOID_CMD_CUTOFF:
-                    self.drive(self.obs_avoid_vector)
-                else:
-                    self.drive(combined_vector)
+                self.stop()
+        else:
+            if vector_mag(cmd_vector) < self.AVOID_CMD_CUTOFF:
+                self.drive(self.obs_avoid_vector)
+            else:
+                self.drive(combined_vector)
 
     def drive(self, vector):
         """
@@ -157,7 +154,10 @@ class ChallengeBot():
         else:
             cmd.angular.z = ang / forced_turn_angle * self.MAX_ANGULAR
 
-        self.vector_pub.publish(cmd)
+        if self.paused:
+            self.vector_pub.publish(Twist())
+        else:
+            self.vector_pub.publish(cmd)
 
     def drive_waypoints(self, waypoints):
         r = rospy.Rate(50)
