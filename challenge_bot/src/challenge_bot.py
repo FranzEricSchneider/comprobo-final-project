@@ -200,19 +200,6 @@ class ChallengeBot():
         self.display_combined_vector.publish_marker(self.current_pos,
                                                     combine)
 
-    def check_tf(self):
-        goal = self.closest_sample()
-        sample_tf = self.tf_listener.lookupTransform('camera_frame',
-                                                     self.SAMPLE_IDS[goal],
-                                                     rospy.Time(0))
-
-        # how far away + how much turning needs to happen towards the sample
-        sample_trans = sample_tf[0]
-        sample_rot = sample_tf[1]
-        sample_rot = tf.transformations.euler_from_quaternion(sample_rot)
-        print "sample_trans! ", sample_trans
-        print "sample_rot!: ", sample_rot
-
     def reorient_robot(self, goal):
         """
         Function for testing information for the "sample seen" case
