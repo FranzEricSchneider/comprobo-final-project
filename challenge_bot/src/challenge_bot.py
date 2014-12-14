@@ -10,7 +10,7 @@ import tf
 from geometry_msgs.msg import Twist, Vector3, Point
 from nav_msgs.msg import OccupancyGrid
 from copy import deepcopy
-from math import copysign, pi, fabs, cos, sqrt, tan
+from math import copysign, pi, fabs, cos, sqrt, tan, atan2
 from random import random
 
 from waypoint import Waypoint
@@ -213,7 +213,7 @@ class ChallengeBot():
         print "sample_trans! ", sample_trans
         print "sample_rot!: ", sample_rot
 
-    def sample_seen_test(self, goal):
+    def reorient_robot(self, goal):
         """
         Function for testing information for the "sample seen" case
         Will be fused back into the grab function when testing is complete
@@ -227,33 +227,27 @@ class ChallengeBot():
         sample_trans = sample_tf[0]
         sample_rot = sample_tf[1]
         sample_rot = tf.transformations.euler_from_quaternion(sample_rot)
-        print "sample_trans! ", sample_trans
-        print "sample_rot!: ", sample_rot
 
         # turn to a point perpendicular to sample
-        print "angle sign check", (tan(abs(sample_rot[1])))*sample_trans[2] < abs(sample_trans[0]) 
-        if (tan(abs(sample_rot[1])))*sample_trans[2] < abs(sample_trans[0]):
-            # cases 2 and 4
-            # TODO: double check case 2...
-            sign = -copysign(1,sample_rot[1])
-        else:
-            # cases 1 and 3
-            sign = copysign(1,sample_rot[1])
-            # sign = -1
-
-        angle_to_perp =  sign * pi/2 - sample_rot[1]
-        
+        angle_to_perp = copysign(1,sample_rot[1]) * (pi/2 - abs(sample_rot[1]))
         self.drive_angle( angle_to_perp )
-        print "angle to a point perpendicular to sample: ", angle_to_perp
+
+        x = sample_trans[2] + 0.17
+        y = -sample_trans[0]
+        theta = sample_rot[1]
+        phi = angle_to_perp
+        if x * tan(abs(theta)) < abs(y):
+            sign = -1
+        else:
+            sign = 1
 
         # drive to a point perpendicular to sample
-        distance_to_perp = sqrt(sample_trans[0]**2 + sample_trans[2]**2) * cos(angle_to_perp)
+        distance_to_perp = sign * abs(sin(theta + atan2(y, x)) * sqrt(x**2 + y**2))
         self.drive_distance( distance_to_perp )
-        print "distance to a point perpendicular to the sample: ", distance_to_perp
 
         # turn towards sample (should be roughly pi/2)
-        self.drive_angle( - sign * pi/2 ) 
-        print "pi/2 turn!!"
+        rospy.sleep(0.25)
+        self.drive_angle( -copysign(1,sample_rot[1]) * pi/2 ) 
 
     def seek(self):
         # TODO: Make smarter code that checks the map, finds the direction to
@@ -289,22 +283,6 @@ class ChallengeBot():
             except:
                 rospy.logwarn("Couldn't see sample: %d", i)
 
-        if sample_seen: # drive over it!
-
-            self.sample_seen_test(goal)
-            self.drive_over(goal)
-
-            # # use some sort of control to go towards the fiducial
-            # # another helper function
-
-            # # check the tf: at a certain distance the sample moves from unclaimed to claimed
-            # if dist_to_fid < .5 :
-            #     self.claimed_samples[key] = self.unclaimed_samples[key]                  
-            #     del self.unclaimed_samples[key]
-
-            # record when the fiducial goes out of view
-            # drive for that distance + 1/2 a meter 
-
         elif not sample_seen:
             # TODO: Implement avoid_point here
             reposition_wp = self.wp_around_sample(goal)
@@ -312,6 +290,10 @@ class ChallengeBot():
             self.drive_waypoints([reposition_wp])
             self.point_robot_at_target(wp.point)
             rospy.loginfo('Finished driving around the waypoint')
+
+        self.reorient_robot(goal)
+        self.drive_over(goal)
+        self.drive_distance(0.75)
 
         # If waypoint is visible
             # Drive to goal perpendicular to sample, 1m away
