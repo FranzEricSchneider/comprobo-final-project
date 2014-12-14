@@ -213,13 +213,12 @@ class ChallengeBot():
         print "sample_trans! ", sample_trans
         print "sample_rot!: ", sample_rot
 
-    def sample_seen_test(self):
+    def sample_seen_test(self, goal):
         """
         Function for testing information for the "sample seen" case
         Will be fused back into the grab function when testing is complete
 
         """
-        goal = self.closest_sample()
         sample_tf = self.tf_listener.lookupTransform('camera_frame',
                                                      self.SAMPLE_IDS[goal],
                                                      rospy.Time(0))
@@ -292,7 +291,7 @@ class ChallengeBot():
 
         if sample_seen: # drive over it!
 
-            self.sample_seen_test()
+            self.sample_seen_test(goal)
             self.drive_over(goal)
 
             # # use some sort of control to go towards the fiducial
