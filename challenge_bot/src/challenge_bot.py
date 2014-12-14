@@ -283,7 +283,7 @@ class ChallengeBot():
             except:
                 rospy.logwarn("Couldn't see sample: %d", i)
 
-        elif not sample_seen:
+        if not sample_seen:
             # TODO: Implement avoid_point here
             reposition_wp = self.wp_around_sample(goal)
             rospy.loginfo('Driving around sample to waypoint \n%s', str(wp))
@@ -291,6 +291,7 @@ class ChallengeBot():
             self.point_robot_at_target(wp.point)
             rospy.loginfo('Finished driving around the waypoint')
 
+        rospy.sleep(0.25)
         self.reorient_robot(goal)
         self.drive_over(goal)
         self.drive_distance(0.75)
