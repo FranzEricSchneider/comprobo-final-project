@@ -10,7 +10,7 @@ import tf
 from geometry_msgs.msg import Twist, Vector3, Point
 from nav_msgs.msg import OccupancyGrid
 from copy import deepcopy
-from math import copysign, pi
+from math import copysign, pi, fabs, cos, sqrt, tan, atan2
 from random import random
 
 from waypoint import Waypoint
@@ -54,8 +54,13 @@ class ChallengeBot():
         self.display_command_vector = RVIZVector("CommandedValue")
         self.display_combined_vector = RVIZVector("CombinedValue")
 
+        # key: value
+        # fiducial's integer: point
         self.unclaimed_samples = {}
         self.claimed_samples = {}
+        # Distance in meters from camera at which sample is considered claimed
+        self.DISTANCE_TO_CLAIM = 0.20
+
         self.tf_listener = tf.TransformListener()
         self.SAMPLE_IDS = {20:'a', 21:'b', 22:'c', 23:'d', 24:'g', 25:'f'}
 
@@ -177,6 +182,7 @@ class ChallengeBot():
         self.current_pos = msg
 
     def map_cb(self, msg):
+        # rospy.loginfo("map_cb happening")
         self.map = msg
         mapped_samples = get_known_samples(self.map)
         for key in mapped_samples.keys():
@@ -193,6 +199,42 @@ class ChallengeBot():
                                                    cmd)
         self.display_combined_vector.publish_marker(self.current_pos,
                                                     combine)
+
+    def reorient_robot(self, goal):
+        """
+        Function for testing information for the "sample seen" case
+        Will be fused back into the grab function when testing is complete
+
+        """
+        sample_tf = self.tf_listener.lookupTransform('camera_frame',
+                                                     self.SAMPLE_IDS[goal],
+                                                     rospy.Time(0))
+
+        # how far away + how much turning needs to happen towards the sample
+        sample_trans = sample_tf[0]
+        sample_rot = sample_tf[1]
+        sample_rot = tf.transformations.euler_from_quaternion(sample_rot)
+
+        # turn to a point perpendicular to sample
+        angle_to_perp = copysign(1,sample_rot[1]) * (pi/2 - abs(sample_rot[1]))
+        self.drive_angle( angle_to_perp )
+
+        x = sample_trans[2] + 0.17
+        y = -sample_trans[0]
+        theta = sample_rot[1]
+        phi = angle_to_perp
+        if x * tan(abs(theta)) < abs(y):
+            sign = -1
+        else:
+            sign = 1
+
+        # drive to a point perpendicular to sample
+        distance_to_perp = sign * abs(sin(theta + atan2(y, x)) * sqrt(x**2 + y**2))
+        self.drive_distance( distance_to_perp )
+
+        # turn towards sample (should be roughly pi/2)
+        rospy.sleep(0.25)
+        self.drive_angle( -copysign(1,sample_rot[1]) * pi/2 ) 
 
     def seek(self):
         # TODO: Make smarter code that checks the map, finds the direction to
@@ -215,6 +257,7 @@ class ChallengeBot():
         sample_seen = False
         rospy.loginfo('Beginning to look for the %s sample',
                       self.SAMPLE_IDS[goal])
+
         for i in range(10):
             try:
                 rospy.sleep(.5)
@@ -235,8 +278,13 @@ class ChallengeBot():
             self.point_robot_at_target(wp.point)
             rospy.loginfo('Finished driving around the waypoint')
 
+        rospy.sleep(0.25)
+        self.reorient_robot(goal)
+        self.drive_over(goal)
+        self.drive_distance(0.75)
+
         # If waypoint is visible
-            # Drive to goal perpindicular to sample, 1m away
+            # Drive to goal perpendicular to sample, 1m away
         # Else (waypoint is not visible)
             # Drive to goal 90 degrees around the circle from where we are
         # Turn towards the sample
@@ -279,3 +327,58 @@ class ChallengeBot():
         return Waypoint(add_points(self.current_pos,
                                    vector_to_point(new_vector)),
                                    RADIUS)
+
+    def drive_over(self, goal):
+        """
+        Takes a fiducial and drives the robot at that fiducial, trying to
+        control the robot so that it is always parallel to the fiducial.
+        Checks the fiducial as a claimed sample when the distance is under a
+        certain amount. Returns a boolean for success
+        """
+        # Proportional control constant
+        k_p = 2
+        # The goal is to have the robot parallel to the fiducial
+        goal_angle = 0.0
+
+        if goal in self.claimed_samples.keys():
+            rospy.loginfo("The sample was already claimed")
+            return True
+        elif goal not in self.unclaimed_samples.keys():
+            rospy.logwarn("The sample was not in unclaimed_samples")
+            return False
+
+        last_trans = (0.0, 0.0, 0.0)
+        sample_claimed = False
+        failures = 0
+        while not sample_claimed and failures < 100\
+              and not rospy.is_shutdown():
+            try:
+                (trans, rot) = self.tf_listener.lookupTransform('camera_frame',
+                                                                self.SAMPLE_IDS[goal],
+                                                                rospy.Time(0))
+                rot = tf.transformations.euler_from_quaternion(rot)
+                if trans == last_trans:
+                    failures += 1
+                    rospy.logwarn("The sample isn't being seen! Failures: %d",
+                                  failures)
+                    rospy.sleep(0.1)
+                else:
+                    rospy.loginfo("Distance: %f", trans[2])
+                    if trans[2] <= self.DISTANCE_TO_CLAIM:
+                        rospy.loginfo("The sample is close enough to claim!")
+                        self.stop()
+                        self.claimed_samples[goal] = self.unclaimed_samples[goal]
+                        self.unclaimed_samples.pop(goal)
+                        sample_claimed = True
+                    else:
+                        print "Angle from fiducial is %f" %rot[1]
+                        print "goal_angle: %f" %goal_angle
+                        rospy.loginfo("Driving robot at angle %f",
+                                      k_p * (goal_angle - rot[1]))
+                        v = create_angled_vector(k_p * (goal_angle - rot[1]))
+                        self.drive(v)
+                        rospy.sleep(0.1)
+                last_trans = trans
+            except:
+                rospy.loginfo("The sample has never been seen before")
+        return sample_claimed

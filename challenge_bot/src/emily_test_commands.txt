@@ -34,17 +34,6 @@ tasks!
 
 ### testing grab
 * work on the state machine branch
-* test the 'if not sample_seen' section
-
-i.e.
-add a sample to the map via service call
-if sample is not in camera view
-robot should still try to go towards it, do the perpendicular thing
-
-tweak the print statements
-
-
-
 
 
 
@@ -62,4 +51,15 @@ rosservice call add_sample_pos_to_map "point:
   z: 0.0  
 fiducial: 'd'"
 
+
+
+
+
+
+
+drive over
+    check it off if it gets close
+    drive over if it sees it
+
+fix goal angle
 
