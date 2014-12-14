@@ -18,7 +18,7 @@ from map_tools import *
 from publish_rviz_vector import *
 from point_tools import *
 from vector_tools import *
-from challenge_msgs.srv import SendBool
+from challenge_msgs.srv import SendBool, OccupancyValue
 
 
 class ChallengeBot():
@@ -49,6 +49,8 @@ class ChallengeBot():
         self.pos_sub = rospy.Subscriber('/current_pos', Point, self.pos_cb)
         self.map = OccupancyGrid()
         self.map_sub = rospy.Subscriber('/map', OccupancyGrid, self.map_cb)
+        self.map_value_clear = rospy.ServiceProxy("remove_specific_occupancy_val",
+                                                  OccupancyValue)  
 
         self.display_obstacle_avoid = RVIZVector("ObstacleAvoid")
         self.display_command_vector = RVIZVector("CommandedValue")
@@ -62,7 +64,7 @@ class ChallengeBot():
         self.DISTANCE_TO_CLAIM = 0.20
 
         self.tf_listener = tf.TransformListener()
-        self.SAMPLE_IDS = {20:'a', 21:'b', 22:'c', 23:'d', 24:'g', 25:'f'}
+        self.SAMPLE_IDS = {50:'a', 60:'b', 70:'c', 80:'d', 90:'g', 100:'f'}
 
         # Logic for the SEEK behavior
         self.last_seek_cmd = Vector3()
@@ -206,35 +208,39 @@ class ChallengeBot():
         Will be fused back into the grab function when testing is complete
 
         """
-        sample_tf = self.tf_listener.lookupTransform('camera_frame',
-                                                     self.SAMPLE_IDS[goal],
-                                                     rospy.Time(0))
+        try:
+            sample_tf = self.tf_listener.lookupTransform('camera_frame',
+                                                         self.SAMPLE_IDS[goal],
+                                                         rospy.Time(0))
 
-        # how far away + how much turning needs to happen towards the sample
-        sample_trans = sample_tf[0]
-        sample_rot = sample_tf[1]
-        sample_rot = tf.transformations.euler_from_quaternion(sample_rot)
+            # how far away + how much turning needs to happen towards the sample
+            sample_trans = sample_tf[0]
+            sample_rot = sample_tf[1]
+            sample_rot = tf.transformations.euler_from_quaternion(sample_rot)
 
-        # turn to a point perpendicular to sample
-        angle_to_perp = copysign(1,sample_rot[1]) * (pi/2 - abs(sample_rot[1]))
-        self.drive_angle( angle_to_perp )
+            # turn to a point perpendicular to sample
+            angle_to_perp = copysign(1,sample_rot[1]) * (pi/2 - abs(sample_rot[1]))
+            self.drive_angle( angle_to_perp )
 
-        x = sample_trans[2] + 0.17
-        y = -sample_trans[0]
-        theta = sample_rot[1]
-        phi = angle_to_perp
-        if x * tan(abs(theta)) < abs(y):
-            sign = -1
-        else:
-            sign = 1
+            x = sample_trans[2] + 0.17
+            y = -sample_trans[0]
+            theta = sample_rot[1]
+            phi = angle_to_perp
+            if x * tan(abs(theta)) < abs(y):
+                sign = -1
+            else:
+                sign = 1
 
-        # drive to a point perpendicular to sample
-        distance_to_perp = sign * abs(sin(theta + atan2(y, x)) * sqrt(x**2 + y**2))
-        self.drive_distance( distance_to_perp )
+            # drive to a point perpendicular to sample
+            distance_to_perp = sign * abs(sin(theta + atan2(y, x)) * sqrt(x**2 + y**2))
+            self.drive_distance( distance_to_perp )
 
-        # turn towards sample (should be roughly pi/2)
-        rospy.sleep(0.25)
-        self.drive_angle( -copysign(1,sample_rot[1]) * pi/2 ) 
+            # turn towards sample (should be roughly pi/2)
+            rospy.sleep(0.25)
+            self.drive_angle( -copysign(1,sample_rot[1]) * pi/2 )
+            return True
+        except:
+            return False
 
     def seek(self):
         # TODO: Make smarter code that checks the map, finds the direction to
@@ -260,7 +266,7 @@ class ChallengeBot():
 
         for i in range(10):
             try:
-                rospy.sleep(.5)
+                rospy.sleep(0.5)
                 sample_tf = self.tf_listener.lookupTransform('camera_frame',
                                                              self.SAMPLE_IDS[goal],
                                                              rospy.Time(0))
@@ -279,9 +285,14 @@ class ChallengeBot():
             rospy.loginfo('Finished driving around the waypoint')
 
         rospy.sleep(0.25)
-        self.reorient_robot(goal)
-        self.drive_over(goal)
-        self.drive_distance(0.75)
+        if self.reorient_robot(goal):
+            if self.drive_over(goal):
+                self.drive_distance(0.75)
+            else:
+                self.stop()
+        else:
+            self.map_value_clear(goal)
+
 
         # If waypoint is visible
             # Drive to goal perpendicular to sample, 1m away
@@ -350,7 +361,7 @@ class ChallengeBot():
         last_trans = (0.0, 0.0, 0.0)
         sample_claimed = False
         failures = 0
-        while not sample_claimed and failures < 100\
+        while not sample_claimed and failures < 20\
               and not rospy.is_shutdown():
             try:
                 (trans, rot) = self.tf_listener.lookupTransform('camera_frame',
@@ -371,8 +382,6 @@ class ChallengeBot():
                         self.unclaimed_samples.pop(goal)
                         sample_claimed = True
                     else:
-                        print "Angle from fiducial is %f" %rot[1]
-                        print "goal_angle: %f" %goal_angle
                         rospy.loginfo("Driving robot at angle %f",
                                       k_p * (goal_angle - rot[1]))
                         v = create_angled_vector(k_p * (goal_angle - rot[1]))

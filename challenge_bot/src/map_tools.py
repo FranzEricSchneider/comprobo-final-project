@@ -16,13 +16,13 @@ def get_known_samples(field_map):
     This assumes that the samples are added in increasing order from 20
     """
     found_samples = {}
-    sample_val = 20
+    sample_val = 50
     for i in range(6):
-        point = avg_point_of_value(field_map, sample_val + i)
+        point = avg_point_of_value(field_map, sample_val + 10 * i)
         if point == -1:
             pass
         else:
-            found_samples[sample_val + i] = deepcopy(point)
+            found_samples[sample_val + 10 * i] = deepcopy(point)
     return found_samples
 
 def avg_point_of_value(field_map, value):

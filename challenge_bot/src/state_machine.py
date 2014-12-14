@@ -29,9 +29,10 @@ class Seek(smach.State):
     def execute(self, userdata):
         global challenger
         rospy.loginfo('Executing state SEEK')
-        r = rospy.Rate(1)
+        r = rospy.Rate(10)
 
         while not rospy.is_shutdown():
+            print "unclaimed_samples ", challenger.unclaimed_samples
             if len(challenger.unclaimed_samples) > 0:
                 self.result = 'has-sample'
                 break
@@ -39,7 +40,9 @@ class Seek(smach.State):
                 self.result = 'timeout'
                 break
             else:
-                challenger.drive_robot(challenger.seek())
+                drive_cmd = challenger.seek()
+                rospy.loginfo("Sending command %s", str(drive_cmd))
+                challenger.drive_robot(drive_cmd)
                 r.sleep()
         rospy.loginfo("Returning from %s with result %s",
                       self.__class__.__name__, self.result)

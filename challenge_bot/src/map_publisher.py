@@ -57,7 +57,7 @@ class MapPublisher():
         # occupancy vals for ramps, where we've been, and where the samples are
         self.RAMP_OCCUPANCY_VAL = 30
         self.HAVEBEEN_OCCUPANCY_VAL = 10
-        self.SAMPLE_OCCUPANCY_VALS = {'a':20, 'b':21, 'c':22, 'd':23, 'g':24, 'f':25}
+        self.SAMPLE_OCCUPANCY_VALS = {'a':50, 'b':60, 'c':70, 'd':80, 'g':90, 'f':100}
 
         # publisher/subscriber stuff
         self.map_pub = rospy.Publisher("/map",OccupancyGrid, queue_size=1)
