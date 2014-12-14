@@ -182,6 +182,7 @@ class ChallengeBot():
         self.current_pos = msg
 
     def map_cb(self, msg):
+        # rospy.loginfo("map_cb happening")
         self.map = msg
         mapped_samples = get_known_samples(self.map)
         for key in mapped_samples.keys():
@@ -199,11 +200,24 @@ class ChallengeBot():
         self.display_combined_vector.publish_marker(self.current_pos,
                                                     combine)
 
+    def check_tf(self):
+        goal = self.closest_sample()
+        sample_tf = self.tf_listener.lookupTransform('camera_frame',
+                                                     self.SAMPLE_IDS[goal],
+                                                     rospy.Time(0))
+
+        # how far away + how much turning needs to happen towards the sample
+        sample_trans = sample_tf[0]
+        sample_rot = sample_tf[1]
+        sample_rot = tf.transformations.euler_from_quaternion(sample_rot)
+        print "sample_trans! ", sample_trans
+        print "sample_rot!: ", sample_rot
+
     def sample_seen_test(self):
         """
         Function for testing information for the "sample seen" case
+        Will be fused back into the grab function when testing is complete
 
-        Currently behaving badly with case 4 
         """
         goal = self.closest_sample()
         sample_tf = self.tf_listener.lookupTransform('camera_frame',
@@ -218,11 +232,15 @@ class ChallengeBot():
         print "sample_rot!: ", sample_rot
 
         # turn to a point perpendicular to sample
-        print (tan(abs(sample_rot[1])))*sample_trans[2] < abs(sample_trans[0]) 
+        print "angle sign check", (tan(abs(sample_rot[1])))*sample_trans[2] < abs(sample_trans[0]) 
         if (tan(abs(sample_rot[1])))*sample_trans[2] < abs(sample_trans[0]):
-            sign = - copysign(1,sample_rot[1])
+            # cases 2 and 4
+            # TODO: double check case 2...
+            sign = -copysign(1,sample_rot[1])
         else:
+            # cases 1 and 3
             sign = copysign(1,sample_rot[1])
+            # sign = -1
 
         angle_to_perp =  sign * pi/2 - sample_rot[1]
         
@@ -274,7 +292,8 @@ class ChallengeBot():
 
         if sample_seen: # drive over it!
 
-            sample_seen_test() is happening
+            self.sample_seen_test()
+            self.drive_over(goal)
 
             # # use some sort of control to go towards the fiducial
             # # another helper function
