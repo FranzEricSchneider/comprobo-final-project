@@ -71,7 +71,8 @@ class Grab(smach.State):
                 self.result = 'timeout'
                 break
             else:
-                challenger.drive_robot(challenger.grab())
+                rospy.loginfo('Executing action GRAB')
+                challenger.grab()
                 r.sleep()
         rospy.loginfo("Returning from %s with result %s",
                       self.__class__.__name__, self.result)      

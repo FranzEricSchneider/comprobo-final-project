@@ -18,7 +18,7 @@ from map_tools import *
 from publish_rviz_vector import *
 from point_tools import *
 from vector_tools import *
-from challenge_msgs.srv import SendBool, OccupancyValue
+from challenge_msgs.srv import SendBool, OccupancyValue, OccupancyValueRequest
 
 
 class ChallengeBot():
@@ -220,6 +220,9 @@ class ChallengeBot():
         rospy.loginfo('Driving towards the nearest sample, %d, at \n%s',
                       goal, str(self.unclaimed_samples[goal]))
         self.drive_waypoints([wp])
+        rospy.loginfo("Pointing robot at target after rough positioning")
+        rospy.sleep(0.5)
+        self.point_robot_at_target(wp.point)
         rospy.loginfo('Finished the rough positioning towards the sample')
 
         # Try for 10 cycles to find the fiducial
@@ -241,14 +244,17 @@ class ChallengeBot():
                 break
             # except:
             #     rospy.logwarn("Sample %d not seen before, try %d", goal, i)
-        self.last_tf[goal] = sample_tf
+        self.last_tf[goal] = deepcopy(sample_tf)
 
         if not sample_seen:
             # TODO: Implement avoid_point here
             reposition_wp = self.wp_around_sample(goal)
-            rospy.loginfo('Driving around sample to waypoint \n%s', str(wp))
+            rospy.loginfo('Driving around sample to waypoint \n%s',
+                          str(wp.point))
             self.drive_angle(pi / 3.0)
             self.drive_waypoints([reposition_wp])
+            rospy.loginfo("Pointing robot at target after driving around")
+            rospy.sleep(0.5)
             self.point_robot_at_target(wp.point)
             rospy.loginfo('Finished driving around the waypoint')
 
@@ -262,19 +268,9 @@ class ChallengeBot():
                 self.stop()
         else:
             rospy.logwarn("Couldn't see a sample after reorienting")
-            self.map_value_clear(goal)
+            self.map_value_clear(OccupancyValueRequest(goal))
+            self.unclaimed_samples.pop(goal)
             rospy.loginfo("Just cleared goal %d from the map", goal)
-
-        # If waypoint is visible
-            # Drive to goal perpendicular to sample, 1m away
-        # Else (waypoint is not visible)
-            # Drive to goal 90 degrees around the circle from where we are
-        # Turn towards the sample
-        # If the waypoint is still not visible
-            # Erase the unclaimed sample from the map/dictionary and return?
-        # Drive towards sample, check off using the value of goal
-
-        return Vector3()
 
     def closest_sample(self):
         """
@@ -322,7 +318,7 @@ class ChallengeBot():
                                                          rospy.Time(0))
             if sample_tf == self.last_tf[goal]:
                 rospy.loginfo("No sample %d, aborting re-orient", goal)
-                self.last_tf[goal] = sample_tf
+                self.last_tf[goal] = deepcopy(sample_tf)
                 return False
             else:
                 # how far away + how much turning needs to happen
@@ -355,7 +351,7 @@ class ChallengeBot():
                 # turn towards sample (should be roughly pi/2)
                 rospy.sleep(0.25)
                 self.drive_angle( -copysign(1,sample_rot[1]) * pi/2 )
-                self.last_tf[goal] = sample_tf
+                self.last_tf[goal] = deepcopy(sample_tf)
                 return True
         except:
             rospy.logwarn("Sample %d not seen before", goal)
@@ -393,9 +389,10 @@ class ChallengeBot():
                 rot = tf.transformations.euler_from_quaternion(rot)
                 if sample_tf == self.last_tf[goal]:
                     failures += 1
-                    rospy.logwarn("The sample isn't being seen! Failures: %d",
+                    rospy.logwarn("Sample not seen in driveover! Failures: %d",
                                   failures)
-                    rospy.sleep(0.1)
+                    self.stop()
+                    rospy.sleep(0.25)
                 else:
                     rospy.loginfo("Distance: %f", trans[2])
                     if trans[2] <= self.DISTANCE_TO_CLAIM:
@@ -410,7 +407,7 @@ class ChallengeBot():
                         v = create_angled_vector(k_p * (goal_angle - rot[1]))
                         self.drive(v)
                         rospy.sleep(0.1)
-                self.last_tf[goal] = sample_tf
+                self.last_tf[goal] = deepcopy(sample_tf)
             except:
                 rospy.logwarn("Sample %d not seen before", goal)
         return sample_claimed
