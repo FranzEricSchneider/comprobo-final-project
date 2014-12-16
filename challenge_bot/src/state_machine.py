@@ -32,7 +32,6 @@ class Seek(smach.State):
         r = rospy.Rate(10)
 
         while not rospy.is_shutdown():
-            print "unclaimed_samples ", challenger.unclaimed_samples
             if len(challenger.unclaimed_samples) > 0:
                 self.result = 'has-sample'
                 break
@@ -41,7 +40,6 @@ class Seek(smach.State):
                 break
             else:
                 drive_cmd = challenger.seek()
-                rospy.loginfo("Sending command %s", str(drive_cmd))
                 challenger.drive_robot(drive_cmd)
                 r.sleep()
         rospy.loginfo("Returning from %s with result %s",
@@ -73,7 +71,8 @@ class Grab(smach.State):
                 self.result = 'timeout'
                 break
             else:
-                challenger.drive_robot(challenger.grab())
+                rospy.loginfo('Executing action GRAB')
+                challenger.grab()
                 r.sleep()
         rospy.loginfo("Returning from %s with result %s",
                       self.__class__.__name__, self.result)      
