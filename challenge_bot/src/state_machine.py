@@ -32,6 +32,7 @@ class Seek(smach.State):
         r = rospy.Rate(15)
 
         while not rospy.is_shutdown():
+            challenger.print_time_remaining()
             if len(challenger.unclaimed_samples) > 0:
                 self.result = 'has-sample'
                 break
@@ -62,6 +63,7 @@ class Grab(smach.State):
         r = rospy.Rate(5)
 
         while not rospy.is_shutdown():
+            challenger.print_time_remaining()
             # TODO: Change this structure so that grab is a self-contained
             # function that returns "timeout" or "no-sample"
             if len(challenger.unclaimed_samples) <= 0:
@@ -95,13 +97,15 @@ class Return(smach.State):
         r = rospy.Rate(10)
 
         while not rospy.is_shutdown():
-            # TODO: Add a case to the while loop that breaks on success
+            challenger.print_time_remaining()
             if len(challenger.unclaimed_samples) > 0\
                and challenger.time_left() > self.GRAB_TIMEOUT:
                 self.result = 'has-sample'
                 break
             else:
                 challenger.drive_robot(challenger.return_to_base())
+                rospy.loginfo("Returning to base, time left: %f s",
+                              challenger.time_left())
                 if challenger.base_wp.is_complete(challenger.current_pos):
                     break
                 r.sleep()
@@ -135,7 +139,6 @@ class Climb(smach.State):
         rospy.loginfo("Returning from %s with result %s",
                       self.__class__.__name__, self.result)
         return self.result
-
 
 def main():
     sm = smach.StateMachine(outcomes=['sm-finished'])
