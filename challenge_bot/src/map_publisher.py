@@ -63,13 +63,12 @@ class MapPublisher():
         self.map_pub = rospy.Publisher("/map",OccupancyGrid, queue_size=1)
 
         # helpful things to track for seek!
-        # counting how much the bot has explored four 40x40 regions
-        # consider indices in things
-        # region 1: 
-        # region 2: 
-        # region 3:
-        # region 4:
-        self.region_counters = {'1':[], '2':[], '3':[], '4':[]} 
+        # counting how many steps the bot has taken in the four quadrants on the map
+        # do we care about re-stepping?
+        # can expand to utilize more regions if desired!
+        # ravel
+        # self.reshaped_map = self.map.data[:].reshape(self.map.info.width, self.map.info.height)
+        self.region_counters = {'top_left':0, 'top_right':0, 'bottom_left':0, 'bottom_right':0} 
 
         # TODO: use the correct value for the ramp position
         self.RAMP_X = 1
@@ -96,7 +95,22 @@ class MapPublisher():
 
         # are you in bounds??
         if (x < self.map.info.width and x >= 0) and (y < self.map.info.height and y >= 0):
-            self.map.data[self.row_major_idx(x, y)] = occupancy_val
+            reshaped_map = self.map.data[:].reshape(self.map.info.width, self.map.info.height)
+            reshaped_map[x, y] = occupancy_val
+
+            # which region are you in? 
+            # increment the appropriate region counter to help with SEEK behavior decisions
+            if (0 < x < self.map.info.width/2) and (0 < y < self.map.info.height/2):
+                self.region_counters['top_left'] += 1
+            elif (self.map.info.width/2 < x < self.map.info.width) and (self.map.info.height/2 < x < self.map.info.height):
+                self.region_counters['top_right'] += 1
+            elif (0 < x < self.map.info.width/2) and (self.map.info.height/2 < y < self.map.info.height):
+                self.region_counters['bottom_left'] += 1
+            elif (self.map.info.width/2 < x < self.map.info.width) and (self.map.info.height/2 < y < self.map.info.height):
+                self.region_counters['bottom_right'] += 1
+
+            self.map.data = reshaped_map.ravel()
+
         else: # you're out of bounds 
             rospy.logwarn("Your point, (%d px, %d px), is out of bounds! Offending occupancy_val: %d", x, y, occupancy_val)
 
@@ -142,6 +156,7 @@ class MapPublisher():
 
     def clear_map_cb(self):
         self.map.data = [0] * self.map.info.height * self.map.info.width # that row-major order
+        self.region_counters = {'top_left':0, 'top_right':0, 'bottom_left':0, 'bottom_right':0} 
         self.mark_ramp(self.RAMP_X, self.RAMP_Y) # mark the ramp again        
         return []
 
