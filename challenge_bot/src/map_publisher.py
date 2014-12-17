@@ -40,6 +40,9 @@ class MapPublisher():
         # set up the service for updating the map with sample locations
         print_s = rospy.Service('print_all_map_values', Empty, self.print_all_values)
 
+        # set up the service for notifying which region has been traveled in the least
+        least_traveled_region_s = rospy.Service('least_traveled_region', Empty, self.handle_least_traveled_region)
+
         # header stuff
         self.map.header.seq = 0 # increment this every time we publish the map
         self.map.header.stamp = rospy.Time.now()
@@ -159,6 +162,16 @@ class MapPublisher():
         self.region_counters = {'top_left':0, 'top_right':0, 'bottom_left':0, 'bottom_right':0} 
         self.mark_ramp(self.RAMP_X, self.RAMP_Y) # mark the ramp again        
         return []
+
+    def handle_least_traveled_region(self, req):
+        return self.least_traveled_region_cb()
+
+    def least_traveled_region_cb(self):
+        least_traveled_region = 'top_left'
+        for region in self.region_counters:
+            if self.region_counters[region] < self.region_counters[least_traveled_region]:
+                least_traveled_region = region
+        return least_traveled_region
 
     def mark_ramp(self, ramp_x, ramp_y):
         """

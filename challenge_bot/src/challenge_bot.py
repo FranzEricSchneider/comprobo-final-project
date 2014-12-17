@@ -205,13 +205,42 @@ class ChallengeBot():
         self.display_combined_vector.publish_marker(self.current_pos,
                                                     combine)
 
+    # def seek(self):
+    #     # TODO: Make smarter code that checks the map, finds the direction to
+    #     # go, and adds a vector in that direction
+
+    #     v = Vector3(random(), random()*2 - 1, 0)
+    #     self.last_seek_cmd = create_unit_vector(vector_add(v,
+    #                                                        self.last_seek_cmd))
+    #     return self.last_seek_cmd
+
     def seek(self):
-        # TODO: Make smarter code that checks the map, finds the direction to
-        # go, and adds a vector in that direction
-        v = Vector3(random(), random()*2 - 1, 0)
-        self.last_seek_cmd = create_unit_vector(vector_add(v,
-                                                           self.last_seek_cmd))
+        seek_radius = 2 
+
+        # point at waypoint, then drive to waypoint to prevent curvy arcs
+ 
+        # drive to origin
+        self.point_robot_at_target(Point(0,0,0))
+        self.drive_waypoints([Point(0,0,0)])
+
+        # testing just one corner first
+        # once it works with one corner, do a for loop sort of thing
+        # TODO: finish the details of this chunk of code:
+        self.point_robot_at_target(Point(seek_radius, 0, 0))
+        out_wp = Waypoint(Point())
+        self.drive_waypoints([out_wp])
+        drive_angle(2*pi, .5) # 360 degree turn, half speed so the bot can "look" at the surroundings
+        in_wp = Waypoint()
+        self.drive_waypoints([in_wp])
+
+        # check unclaimed_samples: is it empty or not? if not empty, let's grab it! otherwise, keep seeking!
+
+        # random movement strategy:
+        # v = Vector3(random(), random()*2 - 1, 0)
+        # self.last_seek_cmd = create_unit_vector(vector_add(v,
+                                                           # self.last_seek_cmd))
         return self.last_seek_cmd
+
 
     def grab(self):
         # TODO: Flesh this case out
@@ -282,7 +311,7 @@ class ChallengeBot():
                                          self.unclaimed_samples[closest_key])
         for key in self.unclaimed_samples.keys():
             diff = pt_to_pt_distance(self.current_pos,
-                                     self.unclaimed_samples[key])
+                                     self.unclaied_samples[key])
             if diff < min_distance:
                 closest_key = key
                 min_distance = diff
