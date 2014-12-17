@@ -24,12 +24,12 @@ class Seek(smach.State):
         self.result = ''
         # TODO: Replace this timeout with one that depends on distance
         # Time left (s) when SEEK will give up and return
-        self.SEEK_TIMEOUT = 2 * 60.0
+        self.SEEK_TIMEOUT = 1.0 * 60.0
 
     def execute(self, userdata):
         global challenger
         rospy.loginfo('Executing state SEEK')
-        r = rospy.Rate(10)
+        r = rospy.Rate(15)
 
         while not rospy.is_shutdown():
             if len(challenger.unclaimed_samples) > 0:
@@ -54,7 +54,7 @@ class Grab(smach.State):
         self.result = ''
         # TODO: Replace this timeout with one that depends on distance
         # Time left (s) when GRAB will give up and return
-        self.GRAB_TIMEOUT = 1.5 * 60.0
+        self.GRAB_TIMEOUT = 0.75 * 60.0
 
     def execute(self, userdata):
         global challenger
@@ -72,7 +72,7 @@ class Grab(smach.State):
                 break
             else:
                 rospy.loginfo('Executing action GRAB')
-                challenger.grab()
+                challenger.grab(self.GRAB_TIMEOUT)
                 r.sleep()
         rospy.loginfo("Returning from %s with result %s",
                       self.__class__.__name__, self.result)      
@@ -81,18 +81,18 @@ class Grab(smach.State):
 
 class Return(smach.State):
     def __init__(self):
-        smach.State.__init__(self, outcomes=['has-sample', 'climb'],
+        smach.State.__init__(self, outcomes=['has-sample', 'climb', 'finished'],
                              input_keys=['return'])
         self.result = ''
         # TODO: Link this to the GRAB timeout somehow legit
         # Time left (s) when GRAB will give up and return
-        self.GRAB_TIMEOUT = 1.5 * 60.0
+        self.GRAB_TIMEOUT = 0.75 * 60.0
 
     def execute(self, userdata):
         global challenger
         rospy.loginfo('Executing state RETURN')
-        self.result = 'climb'
-        r = rospy.Rate(5)
+        self.result = 'finished'
+        r = rospy.Rate(10)
 
         while not rospy.is_shutdown():
             # TODO: Add a case to the while loop that breaks on success
@@ -101,10 +101,13 @@ class Return(smach.State):
                 self.result = 'has-sample'
                 break
             else:
-                # TODO: Write RETURN logic
-                rospy.loginfo("This is where the robot should return!")
+                challenger.drive_robot(challenger.return_to_base())
+                if challenger.base_wp.is_complete(challenger.current_pos):
+                    break
                 r.sleep()
 
+        rospy.loginfo("Completed these fiducials!\n%s",
+                      str([challenger.SAMPLE_IDS[pt] for pt in challenger.claimed_samples.keys()]))
         challenger.stop()
         rospy.loginfo("Returning from %s with result %s",
               self.__class__.__name__, self.result)
@@ -146,7 +149,8 @@ def main():
                                             'timeout': 'RETURN'})
         smach.StateMachine.add('RETURN', Return(),
                                transitions={'has-sample': 'GRAB',
-                                            'climb': 'CLIMB'})
+                                            'climb': 'CLIMB', 
+                                            'finished': 'sm-finished'})
         smach.StateMachine.add('CLIMB', Climb(),
                                transitions={'finished': 'sm-finished'})
 

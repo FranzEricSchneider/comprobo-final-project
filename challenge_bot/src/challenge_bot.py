@@ -38,7 +38,7 @@ class ChallengeBot():
         # Stores the start time as a float, not as a Time datatype
         self.start_time = rospy.get_time()
         # Time limit of challenge in seconds
-        self.TIME_LIMIT = 10 * 60.0
+        self.TIME_LIMIT = 2.5 * 60.0
 
         self.vector_pub = rospy.Publisher('/cmd_vel', Twist, queue_size=1)
 
@@ -46,6 +46,7 @@ class ChallengeBot():
         self.obs_sub = rospy.Subscriber('/obstacle_avoid', Vector3,
                                         self.obs_cb)
         self.current_pos = Point()
+        self.base_wp = Waypoint(Point(), 0.1)
         self.pos_sub = rospy.Subscriber('/current_pos', Point, self.pos_cb)
         self.map = OccupancyGrid()
         self.map_sub = rospy.Subscriber('/map', OccupancyGrid, self.map_cb)
@@ -213,7 +214,11 @@ class ChallengeBot():
                                                            self.last_seek_cmd))
         return self.last_seek_cmd
 
-    def grab(self):
+    def return_to_base(self):
+        # TODO: Make smart code that follows the safe path back
+        return self.base_wp.vector_to_wp(self.current_pos)
+
+    def grab(self, timeout):
         # TODO: Flesh this case out
         goal = self.closest_sample()
         wp = Waypoint(self.unclaimed_samples[goal], 1)
