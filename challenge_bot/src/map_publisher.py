@@ -61,9 +61,15 @@ class MapPublisher():
 
         # publisher/subscriber stuff
         self.map_pub = rospy.Publisher("/map",OccupancyGrid, queue_size=1)
-        # TODO: edit and uncomment these lines when these subscribers have been made
-        # rospy.Subscriber("current_pos", subscribertype, somecallback, queue_size=1)
-        # rospy.Subscriber("sample_finder", subscribertype, somecallback, queue_size=1)
+
+        # helpful things to track for seek!
+        # counting how much the bot has explored four 40x40 regions
+        # consider indices in things
+        # region 1: 
+        # region 2: 
+        # region 3:
+        # region 4:
+        self.region_counters = {'1':[], '2':[], '3':[], '4':[]} 
 
         # TODO: use the correct value for the ramp position
         self.RAMP_X = 1

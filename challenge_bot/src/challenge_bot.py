@@ -101,13 +101,13 @@ class ChallengeBot():
         """
         return (self.start_time + self.TIME_LIMIT) - rospy.get_time()
 
-    def drive_angle(self, angle):
+    def drive_angle(self, angle, scaling=1.0):
         """
         Drives a given angle, (CCW, CW) is (+/-). In radians
         """
-        angle_cmd = Twist(angular=Vector3(0, 0, copysign(1.05, angle)))
+        angle_cmd = Twist(angular=Vector3(0, 0, scaling*copysign(1.05, angle)))
         self.vector_pub.publish(angle_cmd)
-        rospy.sleep(abs(angle))
+        rospy.sleep(abs(angle)/float(scaling))
         self.stop()
 
     def point_robot_at_target(self, point):
@@ -200,7 +200,7 @@ class ChallengeBot():
         """
         self.display_obstacle_avoid.publish_marker(self.current_pos,
                                                    self.obs_avoid_vector)
-        self.display_command_vector.publish_marker(self.current_pos,
+        self.display_command_vector.publish_marseekker(self.current_pos,
                                                    cmd)
         self.display_combined_vector.publish_marker(self.current_pos,
                                                     combine)
