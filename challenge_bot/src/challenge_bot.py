@@ -26,7 +26,7 @@ class ChallengeBot():
         rospy.init_node('ChallengeBot')
 
         # Sets the max/min velocity (m/s) and linear velocity (rad/s)
-        self.MAX_LINEAR = 0.1
+        self.MAX_LINEAR = 0.15
         self.MIN_LINEAR = 0.0
         self.MAX_ANGULAR = .3
         self.MIN_ANGULAR = 0.0
@@ -38,7 +38,7 @@ class ChallengeBot():
         # Stores the start time as a float, not as a Time datatype
         self.start_time = rospy.get_time()
         # Time limit of challenge in seconds
-        self.TIME_LIMIT = 2.5 * 60.0
+        self.TIME_LIMIT = 5 * 60.0
         self.last_print_time = self.start_time
         self.print_time_jumps = 5.0
 
@@ -73,13 +73,15 @@ class ChallengeBot():
                            80:(0, 0, 0), 90:(0, 0, 0), 100:(0, 0, 0)}
 
         # Logic for the SEEK behavior
-        self.searched_areas = {'+x':(Point(1, 0, 0), 0.0),
-                               '+y':(Point(0, 1, 0), 0.0),
-                               '-x':(Point(-1, 0, 0), 0.0),
-                               '-y':(Point(0, -1, 0), 0.0)}
+        self.seek_regions = {Point(1,0,0): 0.0, 
+                             Point(0,1,0): 0.0,
+                             Point(-1,0,0): 0.0,
+                             Point(0,-1,0): 0.0}
+        self.first_seek = True
 
         self.paused = False
         pause_s = rospy.Service('/pause_robot', SendBool, self.set_pause)
+        rospy.sleep(.5)
 
     def stop(self):
         """
@@ -214,56 +216,44 @@ class ChallengeBot():
         """
         self.display_obstacle_avoid.publish_marker(self.current_pos,
                                                    self.obs_avoid_vector)
-        self.display_command_vector.publish_marseekker(self.current_pos,
+        self.display_command_vector.publish_marker(self.current_pos,
                                                    cmd)
         self.display_combined_vector.publish_marker(self.current_pos,
                                                     combine)
 
-    # def seek(self):
-    #     # TODO: Make smarter code that checks the map, finds the direction to
-    #     # go, and adds a vector in that direction
-
-    #     v = Vector3(random(), random()*2 - 1, 0)
-    #     self.last_seek_cmd = create_unit_vector(vector_add(v,
-    #                                                        self.last_seek_cmd))
-    #     return self.last_seek_cmd
-
     def seek(self):
-        seek_radius = 2
-        seek_wp_radius = 0.25
+        seek_radius = 0.75
+        seek_wp_radius = 0.15
+        spin_speed = 0.25
 
-        # point at waypoint, then drive to waypoint to prevent curvy arcs
- 
         # drive to origin
         base_wp = Waypoint(Point(), seek_wp_radius)
         self.point_robot_at_target(base_wp.point)
         self.drive_waypoints([base_wp])
-        drive_angle(2*pi, .5) # 360 degree turn, half speed so the bot can "look" at the surroundings
+        if self.first_seek:
+            self.drive_angle(2*pi, spin_speed) # 360 degree turn, half speed so the bot can "look" at the surroundings
+            self.first_seek = False
 
-        # ERIC EXAMPLE, NOT FINISHED
-        # area = self.get_least_explored_area()
-        # out_wp = Waypoint(self.searched_areas[area][0], seek_wp_radius)
-        # Then find some way to step the point out a bit?
+        if len(self.unclaimed_samples) == 0:
+            region = self.get_least_explored_region()
+            rospy.loginfo("SEEK: least explored region is %s\n",
+                          str(region))
+            self.seek_regions[region] += seek_radius
+            out_wp = Waypoint(scale_point(region, self.seek_regions[region]), seek_wp_radius)
 
-        # testing just one corner first
-        # once it works with one corner, do a for loop sort of thing
-        # TODO: finish the details of this chunk of code:
-        out_wp = Waypoint(Point(seek_radius, 0, 0), seek_wp_radius)
-        self.point_robot_at_target(out_wp.point)
-        self.drive_waypoints([out_wp])
-        drive_angle(2*pi, .5) # 360 degree turn, half speed so the bot can "look" at the surroundings
-        # check unclaimed_samples: is it empty or not? if not empty, let's grab it! otherwise, keep seeking!
-        self.point_robot_at_target(base_wp.point)
-        self.drive_waypoints([base_wp])
+            self.point_robot_at_target(out_wp.point)
+            self.drive_waypoints([out_wp])
+            self.drive_angle(2*pi, spin_speed) # 360 degree turn, half speed so the bot can "look" at the surroundings
+            print "SEEK: spinning"
 
-    def get_least_explored_area(self):
-        least_area = '+x'
-        least_radius = self.searched_areas['+x'][1]  # initializes search
-        for area in self.searched_areas.keys():
-            if self.searched_areas[area][1] < least_radius:
-                least_radius = self.searched_areas[area][1]
-                least_area = area
-        return least_area
+    def get_least_explored_region(self):
+        least_region = self.seek_regions.keys()[0]
+        least_radius = self.seek_regions[least_region]  # initializes search
+        for region in self.seek_regions.keys():
+            if self.seek_regions[region] < least_radius:
+                least_radius = self.seek_regions[region]
+                least_region = region
+        return least_region
 
     def return_to_base(self):
         # TODO: Make smart code that follows the safe path back
@@ -326,6 +316,7 @@ class ChallengeBot():
             rospy.logwarn("Couldn't see a sample after reorienting")
             self.map_value_clear(OccupancyValueRequest(goal))
             self.unclaimed_samples.pop(goal)
+            print "unclaimed_samples ", self.unclaimed_samples
             rospy.loginfo("Just cleared goal %d from the map", goal)
 
     def closest_sample(self):
@@ -338,7 +329,7 @@ class ChallengeBot():
                                          self.unclaimed_samples[closest_key])
         for key in self.unclaimed_samples.keys():
             diff = pt_to_pt_distance(self.current_pos,
-                                     self.unclaied_samples[key])
+                                     self.unclaimed_samples[key])
             if diff < min_distance:
                 closest_key = key
                 min_distance = diff
