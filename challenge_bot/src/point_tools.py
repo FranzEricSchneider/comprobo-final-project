@@ -32,6 +32,16 @@ def add_points(point1, point2):
     point.z = add_angles(point1.z, point2.z)
     return point
 
+def scale_point(point1, scalar):
+    """
+    Multiply each element of the given point by the scalar
+    """
+    point = Point()
+    point.x = point1.x * scalar
+    point.y = point1.y * scalar
+    point.z = point1.z * scalar
+    return point
+
 def point_difference(point1, point2):
     """
     Returns the vector FROM point1 TO point2, with the angle change in radians
