@@ -38,7 +38,9 @@ class ChallengeBot():
         # Stores the start time as a float, not as a Time datatype
         self.start_time = rospy.get_time()
         # Time limit of challenge in seconds
-        self.TIME_LIMIT = 10 * 60.0
+        self.TIME_LIMIT = 2.5 * 60.0
+        self.last_print_time = self.start_time
+        self.print_time_jumps = 5.0
 
         self.vector_pub = rospy.Publisher('/cmd_vel', Twist, queue_size=1)
 
@@ -46,6 +48,7 @@ class ChallengeBot():
         self.obs_sub = rospy.Subscriber('/obstacle_avoid', Vector3,
                                         self.obs_cb)
         self.current_pos = Point()
+        self.base_wp = Waypoint(Point(), 0.1)
         self.pos_sub = rospy.Subscriber('/current_pos', Point, self.pos_cb)
         self.map = OccupancyGrid()
         self.map_sub = rospy.Subscriber('/map', OccupancyGrid, self.map_cb)
@@ -103,6 +106,14 @@ class ChallengeBot():
         Returns the time left for challenge, in float seconds, until time's out
         """
         return (self.start_time + self.TIME_LIMIT) - rospy.get_time()
+
+    def print_time_remaining(self):
+        time_now = rospy.get_time()
+        if (time_now - self.last_print_time) > self.print_time_jumps:
+            rospy.loginfo("Time remaining: %d s", self.time_left())
+            print self.unclaimed_samples
+            print len(self.unclaimed_samples)
+            self.last_print_time = time_now
 
     def drive_angle(self, angle, scaling=1.0):
         """
@@ -254,7 +265,11 @@ class ChallengeBot():
                 least_area = area
         return least_area
 
-    def grab(self):
+    def return_to_base(self):
+        # TODO: Make smart code that follows the safe path back
+        return self.base_wp.vector_to_wp(self.current_pos)
+
+    def grab(self, timeout):
         # TODO: Flesh this case out
         goal = self.closest_sample()
         wp = Waypoint(self.unclaimed_samples[goal], 1)
@@ -272,19 +287,19 @@ class ChallengeBot():
                       self.SAMPLE_IDS[goal])
 
         for i in range(10):
-            # try:
-            rospy.sleep(0.5)
-            sample_tf = self.tf_listener.lookupTransform('camera_frame',
-                                                         self.SAMPLE_IDS[goal],
-                                                         rospy.Time(0))
-            if sample_tf == self.last_tf[goal]:
-                rospy.logwarn("No sample %d seen after rough waypoint", i)
-            else:
-                rospy.loginfo("SUCCESS -- Saw the sample on cycle %d", i)
-                sample_seen = True
-                break
-            # except:
-            #     rospy.logwarn("Sample %d not seen before, try %d", goal, i)
+            try:
+                rospy.sleep(0.5)
+                sample_tf = self.tf_listener.lookupTransform('camera_frame',
+                                                             self.SAMPLE_IDS[goal],
+                                                             rospy.Time(0))
+                if sample_tf == self.last_tf[goal]:
+                    rospy.logwarn("No sample %d seen after rough waypoint", i)
+                else:
+                    rospy.loginfo("SUCCESS -- Saw the sample on cycle %d", i)
+                    sample_seen = True
+                    break
+            except:
+                rospy.logwarn("Sample %d not seen before, try %d", goal, i)
         self.last_tf[goal] = deepcopy(sample_tf)
 
         if not sample_seen:
