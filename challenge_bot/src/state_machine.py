@@ -40,8 +40,7 @@ class Seek(smach.State):
                 self.result = 'timeout'
                 break
             else:
-                drive_cmd = challenger.seek()
-                challenger.drive_robot(drive_cmd)
+                challenger.seek()
                 r.sleep()
         rospy.loginfo("Returning from %s with result %s",
                       self.__class__.__name__, self.result)

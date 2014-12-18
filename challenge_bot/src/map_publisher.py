@@ -7,6 +7,7 @@
 # using a ROS OccupancyGrid.
 
 import rospy
+import numpy as np
 from nav_msgs.msg import MapMetaData, OccupancyGrid
 from std_srvs.srv import Empty
 from challenge_msgs.srv import PointRequest, PointRequestResponse
@@ -40,6 +41,9 @@ class MapPublisher():
         # set up the service for updating the map with sample locations
         print_s = rospy.Service('print_all_map_values', Empty, self.print_all_values)
 
+        # set up the service for notifying which region has been traveled in the least
+        least_traveled_region_s = rospy.Service('least_traveled_region', Empty, self.handle_least_traveled_region)
+
         # header stuff
         self.map.header.seq = 0 # increment this every time we publish the map
         self.map.header.stamp = rospy.Time.now()
@@ -61,9 +65,14 @@ class MapPublisher():
 
         # publisher/subscriber stuff
         self.map_pub = rospy.Publisher("/map",OccupancyGrid, queue_size=1)
-        # TODO: edit and uncomment these lines when these subscribers have been made
-        # rospy.Subscriber("current_pos", subscribertype, somecallback, queue_size=1)
-        # rospy.Subscriber("sample_finder", subscribertype, somecallback, queue_size=1)
+
+        # helpful things to track for seek!
+        # counting how many steps the bot has taken in the four quadrants on the map
+        # do we care about re-stepping?
+        # can expand to utilize more regions if desired!
+        # ravel
+        # self.reshaped_map = self.map.data[:].reshape(self.map.info.width, self.map.info.height)
+        self.region_counters = {'top_left':0, 'top_right':0, 'bottom_left':0, 'bottom_right':0} 
 
         # TODO: use the correct value for the ramp position
         self.RAMP_X = 1
@@ -83,6 +92,32 @@ class MapPublisher():
         """
         return self.map.info.width*int(y) + int(x)
 
+    # def set_value(self, x, y, occupancy_val):
+    #     # convert from meters to pixels yo
+    #     x = (x - self.map.info.origin.position.x) / self.map.info.resolution 
+    #     y = (y - self.map.info.origin.position.y) / self.map.info.resolution      
+
+    #     # are you in bounds??
+    #     if (x < self.map.info.width and x >= 0) and (y < self.map.info.height and y >= 0):
+    #         reshaped_map = np.array(self.map.data).reshape(self.map.info.width, self.map.info.height)
+    #         reshaped_map[x, y] = occupancy_val
+
+    #         # which region are you in? 
+    #         # increment the appropriate region counter to help with SEEK behavior decisions
+    #         if (0 < x < self.map.info.width/2) and (0 < y < self.map.info.height/2):
+    #             self.region_counters['top_left'] += 1
+    #         elif (self.map.info.width/2 < x < self.map.info.width) and (self.map.info.height/2 < x < self.map.info.height):
+    #             self.region_counters['top_right'] += 1
+    #         elif (0 < x < self.map.info.width/2) and (self.map.info.height/2 < y < self.map.info.height):
+    #             self.region_counters['bottom_left'] += 1
+    #         elif (self.map.info.width/2 < x < self.map.info.width) and (self.map.info.height/2 < y < self.map.info.height):
+    #             self.region_counters['bottom_right'] += 1
+
+    #         self.map.data = reshaped_map.ravel()
+
+    #     else: # you're out of bounds 
+    #         rospy.logwarn("Your point, (%d px, %d px), is out of bounds! Offending occupancy_val: %d", x, y, occupancy_val)
+
     def set_value(self, x, y, occupancy_val):
         # convert from meters to pixels yo
         x = (x - self.map.info.origin.position.x) / self.map.info.resolution 
@@ -93,6 +128,7 @@ class MapPublisher():
             self.map.data[self.row_major_idx(x, y)] = occupancy_val
         else: # you're out of bounds 
             rospy.logwarn("Your point, (%d px, %d px), is out of bounds! Offending occupancy_val: %d", x, y, occupancy_val)
+
 
     def handle_pos_service(self, req):
         return self.pos_cb(req.point.x, req.point.y)
@@ -136,8 +172,19 @@ class MapPublisher():
 
     def clear_map_cb(self):
         self.map.data = [0] * self.map.info.height * self.map.info.width # that row-major order
+        self.region_counters = {'top_left':0, 'top_right':0, 'bottom_left':0, 'bottom_right':0} 
         self.mark_ramp(self.RAMP_X, self.RAMP_Y) # mark the ramp again        
         return []
+
+    def handle_least_traveled_region(self, req):
+        return self.least_traveled_region_cb()
+
+    def least_traveled_region_cb(self):
+        least_traveled_region = 'top_left'
+        for region in self.region_counters:
+            if self.region_counters[region] < self.region_counters[least_traveled_region]:
+                least_traveled_region = region
+        return least_traveled_region
 
     def mark_ramp(self, ramp_x, ramp_y):
         """
