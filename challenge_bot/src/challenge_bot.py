@@ -70,7 +70,10 @@ class ChallengeBot():
                            80:(0, 0, 0), 90:(0, 0, 0), 100:(0, 0, 0)}
 
         # Logic for the SEEK behavior
-        self.last_seek_cmd = Vector3()
+        self.searched_areas = {'+x':(Point(1, 0, 0), 0.0),
+                               '+y':(Point(0, 1, 0), 0.0),
+                               '-x':(Point(-1, 0, 0), 0.0),
+                               '-y':(Point(0, -1, 0), 0.0)}
 
         self.paused = False
         pause_s = rospy.Service('/pause_robot', SendBool, self.set_pause)
@@ -215,32 +218,41 @@ class ChallengeBot():
     #     return self.last_seek_cmd
 
     def seek(self):
-        seek_radius = 2 
+        seek_radius = 2
+        seek_wp_radius = 0.25
 
         # point at waypoint, then drive to waypoint to prevent curvy arcs
  
         # drive to origin
-        self.point_robot_at_target(Point(0,0,0))
-        self.drive_waypoints([Point(0,0,0)])
+        base_wp = Waypoint(Point(), seek_wp_radius)
+        self.point_robot_at_target(base_wp.point)
+        self.drive_waypoints([base_wp])
+        drive_angle(2*pi, .5) # 360 degree turn, half speed so the bot can "look" at the surroundings
+
+        # ERIC EXAMPLE, NOT FINISHED
+        # area = self.get_least_explored_area()
+        # out_wp = Waypoint(self.searched_areas[area][0], seek_wp_radius)
+        # Then find some way to step the point out a bit?
 
         # testing just one corner first
         # once it works with one corner, do a for loop sort of thing
         # TODO: finish the details of this chunk of code:
-        self.point_robot_at_target(Point(seek_radius, 0, 0))
-        out_wp = Waypoint(Point())
+        out_wp = Waypoint(Point(seek_radius, 0, 0), seek_wp_radius)
+        self.point_robot_at_target(out_wp.point)
         self.drive_waypoints([out_wp])
         drive_angle(2*pi, .5) # 360 degree turn, half speed so the bot can "look" at the surroundings
-        in_wp = Waypoint()
-        self.drive_waypoints([in_wp])
-
         # check unclaimed_samples: is it empty or not? if not empty, let's grab it! otherwise, keep seeking!
+        self.point_robot_at_target(base_wp.point)
+        self.drive_waypoints([base_wp])
 
-        # random movement strategy:
-        # v = Vector3(random(), random()*2 - 1, 0)
-        # self.last_seek_cmd = create_unit_vector(vector_add(v,
-                                                           # self.last_seek_cmd))
-        return self.last_seek_cmd
-
+    def get_least_explored_area(self):
+        least_area = '+x'
+        least_radius = self.searched_areas['+x'][1]  # initializes search
+        for area in self.searched_areas.keys():
+            if self.searched_areas[area][1] < least_radius:
+                least_radius = self.searched_areas[area][1]
+                least_area = area
+        return least_area
 
     def grab(self):
         # TODO: Flesh this case out
