@@ -1,3 +1,7 @@
+### NASA Sample Return Robot Challenge
+Computational Robotics Final Project | Fall 2014
+@eschneider1992 and @greenteawarrior
+
 ### What was the goal of your project?
 * We were trying to prototype the [NASA sample challenge](http://www.nasa.gov/sites/default/files/files/SRR14-fact-Sheet.pdf), in which robots need to wander an area collecting samples that might simulate sample-taking on a planet. Simply put, our robot was supposed to leave a base station, run over samples that were tagged with fiducials, and return to the base station in a certain time limit.
 
@@ -22,17 +26,18 @@
     * We thought we would have enough time to iterate on a couple of the simple sections, but that didn't really happen.
 
 ### What would you do to improve your project if you had more time?
-    * A number of places in our code implement very simplistic logic. For example, the Grab case executes a series of moves that try to line up the robot with the fiducial and drive over it. More elegant would be a path planning function that takes the fiducial position and orientation into account from the beginning and just drives a course.
-    * We could try to return to the base along a previously travelled path, instead of going straight to base like we are now. This would be a good goal to shoot for because in the actual competition teams want to make absolutely sure the robot will get back and won't run into any unexpected obstacles on the way.
-    * Another area would be to construct a Kalman filter for the robot position, instead of doing what we do, which is using odom and overriding it periodically with user information. There are many areas like this. Our future work would be to choose one or two of these options that interest us and flesh them out.
+* A number of places in our code implement very simplistic logic. For example, the Grab case executes a series of moves that try to line up the robot with the fiducial and drive over it. More elegant would be a path planning function that takes the fiducial position and orientation into account from the beginning and just drives a course.
+* We could try to return to the base along a previously travelled path, instead of going straight to base like we are now. This would be a good goal to shoot for because in the actual competition teams want to make absolutely sure the robot will get back and won't run into any unexpected obstacles on the way.
+* Another area would be to construct a Kalman filter for the robot position, instead of doing what we do, which is using odom and overriding it periodically with user information. There are many areas like this. Our future work would be to choose one or two of these options that interest us and flesh them out.
+* More sensors - perhaps something like an accelerometer would allow the robot to make a more informed decision about whether the detected objects are harmful or not. Currently the 1D lidar on the neato robot is unable to distinguish harmless hills and harmful obstacles.
 
 ### Did you learn any interesting lessons for future robotic programming projects?  These could relate to working on robotics projects in teams, working on more open-ended (and longer term) problems, or any other relevant topic.
-    * Pay attention to whether information is local or global
-    * Build tools to debug your process earlier rather than later (things that plug into RVIZ, generally)
-    * Be clear about what states you are in and which states you will go to from there
-    * Construct working printouts cleanly and in a similar style so they will be useful
-    * Got more comfortable with ROS as a framework
-    * Got more comfortable coding with a bunch of states (a lot of things happening in parallel)
-    * Robots are non-deterministic (b/c of the environment), and you have to think more of robustness than a lot of code
-    * We used a couple external libraries for fiducial tracking, could have done more of that for path planning
-    * Learned a bit more about what a robot unit test looks like
+* Pay attention to whether information is local or global
+* Build tools to debug your process earlier rather than later (things that plug into RVIZ, generally)
+* Be clear about what states you are in and which states you will go to from there
+* Construct working printouts cleanly and in a similar style so they will be useful
+* Got more comfortable with ROS as a framework
+* Got more comfortable coding with a bunch of states (a lot of things happening in parallel)
+* Robots are non-deterministic (b/c of the environment), and you have to think more of robustness than a lot of code
+* We used a couple external libraries for fiducial tracking, could have done more of that for path planning
+* Learned a bit more about what a robot unit test looks like
